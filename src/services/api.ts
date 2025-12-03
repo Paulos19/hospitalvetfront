@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // A NOVA URL DE PRODUÇÃO
-const API_URL = 'https://hospitalvetbackend-7jyy.vercel.app/api'; 
+const API_URL = 'https://hospitalvetbackend.vercel.app/api'; 
 
 export const api = axios.create({
   baseURL: API_URL,
