@@ -1,16 +1,38 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 
 export default function LoginScreen() {
-  const router = useRouter(); // O hook de navegação deve ser usado aqui
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  
   const signIn = useAuthStore((state) => state.signIn);
+
+  // Verifica se o usuário já passou pelo onboarding
+  useEffect(() => {
+    checkOnboarding();
+  }, []);
+
+  const checkOnboarding = async () => {
+    try {
+      const hasSeen = await AsyncStorage.getItem('hasSeenOnboarding');
+      if (hasSeen !== 'true') {
+        // Se não viu, manda para o onboarding
+        router.replace('/onboarding');
+      }
+    } catch (e) {
+      console.log('Erro ao checar onboarding', e);
+    } finally {
+      setCheckingOnboarding(false);
+    }
+  };
 
   async function handleLogin() {
     if (!email || !password) return Alert.alert('Erro', 'Preencha todos os campos');
@@ -21,15 +43,12 @@ export default function LoginScreen() {
       
       const { token, user } = response.data;
       
-      // 1. Salva no estado global
       await signIn(token, user); 
       
-      // 2. Faz o redirecionamento baseado no cargo (ROLE)
-      // Adicionamos o caso ADMIN que faltava
       if (user.role === 'CLIENT') {
         router.replace('/(client)/home');
       } else if (user.role === 'VET') {
-        router.replace('/(vet)/dashboard'); // Certifique-se de criar essa rota depois
+        router.replace('/(vet)/dashboard');
       } else if (user.role === 'ADMIN') {
         router.replace('/(admin)/dashboard');
       } else {
@@ -43,6 +62,15 @@ export default function LoginScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Enquanto checa o AsyncStorage, mostra um loading simples para não piscar a tela
+  if (checkingOnboarding) {
+    return (
+        <View className="flex-1 justify-center items-center bg-background">
+            <ActivityIndicator color="#10B981" size="large" />
+        </View>
+    );
   }
 
   return (

@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../../src/services/api';
 
@@ -28,7 +27,7 @@ interface PetDetails {
   breed: string;
   weight: number;
   photoUrl: string;
-  ownerId: string; // Importante para o agendamento
+  ownerId: string;
   vaccinations: Vaccine[];
   prescriptions: Prescription[];
   owner: { 
@@ -38,7 +37,7 @@ interface PetDetails {
 }
 
 export default function PetDetailsScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams(); // Pega o ID da URL
   const router = useRouter();
   
   const [pet, setPet] = useState<PetDetails | null>(null);
@@ -52,16 +51,17 @@ export default function PetDetailsScreen() {
   const [vacName, setVacName] = useState('');
   const [nextDate, setNextDate] = useState(''); 
 
-  // Form Agendamento
+  // Form Agendamento (MANUAL)
   const [scheduleReason, setScheduleReason] = useState('');
-  const [scheduleDate, setScheduleDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [scheduleDateText, setScheduleDateText] = useState(''); // Ex: 2025-10-10
+  const [scheduleTimeText, setScheduleTimeText] = useState(''); // Ex: 14:30
 
   async function fetchDetails() {
     try {
       const res = await api.get(`/vet/pet/${id}`);
       setPet(res.data);
     } catch (error) {
+      console.error("Erro fetchDetails:", error);
       Alert.alert('Erro', 'Não foi possível carregar o pet.');
       router.back();
     } finally {
@@ -76,36 +76,66 @@ export default function PetDetailsScreen() {
   // --- Lógica de Vacina ---
   async function handleAddVaccine() {
     if (!vacName) return Alert.alert('Erro', 'Nome da vacina é obrigatório');
+    
+    let nextDueDateISO = null;
+    
+    if (nextDate) {
+      const dateObj = new Date(nextDate);
+      if (isNaN(dateObj.getTime())) {
+        return Alert.alert('Data Inválida', 'Por favor, use o formato AAAA-MM-DD (ex: 2025-12-25).');
+      }
+      nextDueDateISO = dateObj.toISOString();
+    }
+
     try {
       await api.post('/vet/vaccines', {
         name: vacName,
         dateAdministered: new Date().toISOString(),
-        nextDueDate: nextDate ? new Date(nextDate).toISOString() : null,
+        nextDueDate: nextDueDateISO, 
         petId: id
       });
+      
       setVaccineModalVisible(false);
       setVacName('');
       setNextDate('');
       fetchDetails(); 
       Alert.alert('Sucesso', 'Vacina registrada!');
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert('Erro', 'Falha ao salvar vacina.');
     }
   }
 
-  // --- Lógica de Agendamento ---
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || scheduleDate;
-    setShowDatePicker(Platform.OS === 'ios'); // No iOS mantém aberto, no Android fecha ao selecionar
-    setScheduleDate(currentDate);
-  };
-
+  // --- Lógica de Agendamento (MANUAL) ---
   async function handleAddAppointment() {
-    if (!scheduleReason) return Alert.alert('Erro', 'Informe o motivo da consulta.');
+    if (!scheduleReason || !scheduleDateText || !scheduleTimeText) {
+        return Alert.alert('Erro', 'Preencha todos os campos.');
+    }
+    
+    if (!pet?.ownerId) {
+       return Alert.alert('Erro', 'Dados do tutor incompletos (ownerId faltando).');
+    }
+
+    // Validação básica de formato
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const timeRegex = /^\d{2}:\d{2}$/;
+
+    if (!dateRegex.test(scheduleDateText) || !timeRegex.test(scheduleTimeText)) {
+       return Alert.alert('Formato Inválido', 'Use AAAA-MM-DD para data e HH:MM para hora.');
+    }
+
+    // Construção da data considerando fuso horário de Brasília (GMT-3)
+    // Criamos a string no formato ISO com offset explícito
+    const dateTimeString = `${scheduleDateText}T${scheduleTimeText}:00-03:00`;
+    
+    const dateObj = new Date(dateTimeString);
+    
+    if (isNaN(dateObj.getTime())) {
+        return Alert.alert('Data/Hora Inválida', 'Verifique os valores inseridos.');
+    }
 
     try {
       await api.post('/appointments', {
-        date: scheduleDate.toISOString(),
+        date: dateObj.toISOString(), // Envia como UTC, mas o momento temporal está correto
         reason: scheduleReason,
         petId: pet?.id,
         clientId: pet?.ownerId 
@@ -113,8 +143,11 @@ export default function PetDetailsScreen() {
       
       setScheduleModalVisible(false);
       setScheduleReason('');
+      setScheduleDateText('');
+      setScheduleTimeText('');
       Alert.alert('Sucesso', 'Agendamento criado!');
     } catch (error) {
+      console.error("Erro agendamento:", error);
       Alert.alert('Erro', 'Falha ao agendar.');
     }
   }
@@ -122,6 +155,9 @@ export default function PetDetailsScreen() {
 
   if (loading) return <View className="flex-1 justify-center items-center"><ActivityIndicator color="#10B981"/></View>;
   if (!pet) return <View className="flex-1 justify-center items-center"><Text>Pet não encontrado</Text></View>;
+  
+  // Pega o ano atual para sugestão no placeholder
+  const currentYear = new Date().getFullYear();
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
@@ -242,7 +278,7 @@ export default function PetDetailsScreen() {
             />
             <TextInput 
               className="bg-gray-100 p-4 rounded-xl mb-6 text-lg border border-gray-200"
-              placeholder="Próxima Dose (AAAA-MM-DD)"
+              placeholder={`Próxima Dose (${currentYear}-MM-DD)`}
               value={nextDate}
               onChangeText={setNextDate}
               keyboardType="numbers-and-punctuation"
@@ -257,7 +293,7 @@ export default function PetDetailsScreen() {
         </View>
       </Modal>
 
-      {/* --- MODAL AGENDAMENTO --- */}
+      {/* --- MODAL AGENDAMENTO MANUAL --- */}
       <Modal visible={scheduleModalVisible} animationType="slide" transparent>
         <View className="flex-1 bg-black/50 justify-end">
             <View className="bg-white rounded-t-3xl p-6 h-auto pb-10">
@@ -271,32 +307,28 @@ export default function PetDetailsScreen() {
                 onChangeText={setScheduleReason}
             />
 
-            <Text className="mb-2 font-bold text-gray-700">Data e Hora</Text>
-            <TouchableOpacity 
-                onPress={() => setShowDatePicker(true)}
-                className="bg-gray-100 p-4 rounded-xl mb-6 border border-gray-200"
-            >
-                <Text className="text-lg text-center font-bold text-primary-700">
-                  {scheduleDate.toLocaleDateString('pt-BR')} às {scheduleDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
-                </Text>
-            </TouchableOpacity>
-            
-            {showDatePicker && (
-                <DateTimePicker
-                    value={scheduleDate}
-                    mode="datetime"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={onDateChange}
-                    minimumDate={new Date()}
-                />
-            )}
-            
-            {/* Botão de fechar picker manual no iOS se necessário */}
-            {Platform.OS === 'ios' && showDatePicker && (
-              <TouchableOpacity onPress={() => setShowDatePicker(false)} className="items-end mb-4">
-                 <Text className="text-primary-500 font-bold">Pronto</Text>
-              </TouchableOpacity>
-            )}
+            <View className="flex-row gap-4 mb-6">
+                <View className="flex-1">
+                    <Text className="mb-2 font-bold text-gray-700">Data (AAAA-MM-DD)</Text>
+                    <TextInput 
+                        className="bg-gray-100 p-4 rounded-xl text-lg border border-gray-200"
+                        placeholder={`${currentYear}-12-25`}
+                        value={scheduleDateText}
+                        onChangeText={setScheduleDateText}
+                        keyboardType="numbers-and-punctuation"
+                    />
+                </View>
+                <View className="flex-1">
+                    <Text className="mb-2 font-bold text-gray-700">Hora (HH:MM)</Text>
+                    <TextInput 
+                        className="bg-gray-100 p-4 rounded-xl text-lg border border-gray-200"
+                        placeholder="14:30"
+                        value={scheduleTimeText}
+                        onChangeText={setScheduleTimeText}
+                        keyboardType="numbers-and-punctuation"
+                    />
+                </View>
+            </View>
 
             <TouchableOpacity 
                 onPress={handleAddAppointment}

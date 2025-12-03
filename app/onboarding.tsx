@@ -1,0 +1,62 @@
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
+import { Alert, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export default function OnboardingScreen() {
+  const router = useRouter();
+
+  async function handleFinish() {
+    // 1. Pedir permissão de localização
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Permissão negada', 'Precisamos da sua localização para encontrar clínicas próximas no futuro.');
+      return;
+    }
+
+    // 2. Salvar que o usuário já viu o onboarding
+    await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+
+    // 3. Ir para o Login
+    router.replace('/');
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-white items-center justify-between py-10 px-6">
+      <View className="items-center mt-10">
+        <View className="w-64 h-64 bg-secondary-100 rounded-full items-center justify-center mb-10">
+            {/* Você pode usar uma imagem ilustrativa aqui */}
+            <Ionicons name="paw" size={120} color="#10B981" />
+        </View>
+        
+        <Text className="text-3xl font-bold text-primary-700 text-center mb-4">
+          Cães & Cia
+        </Text>
+        
+        <Text className="text-text-muted text-center text-lg leading-6">
+          O cuidado que seu melhor amigo merece.{'\n'}
+          Gerencie vacinas, consultas e histórico médico em um só lugar.
+        </Text>
+      </View>
+
+      <View className="w-full">
+        <View className="flex-row items-center justify-center mb-8 space-x-2">
+            <Ionicons name="location-outline" size={20} color="#6B7280" />
+            <Text className="text-text-muted text-sm text-center">
+                Precisamos da sua localização para{'\n'}melhor experiência.
+            </Text>
+        </View>
+
+        <TouchableOpacity 
+          onPress={handleFinish}
+          className="w-full bg-primary-500 py-4 rounded-2xl items-center shadow-lg shadow-primary-500/30"
+        >
+          <Text className="text-white font-bold text-xl">Começar Agora</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
