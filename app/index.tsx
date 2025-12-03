@@ -2,9 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
+
+// Componentes UI
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -15,7 +20,6 @@ export default function LoginScreen() {
   
   const signIn = useAuthStore((state) => state.signIn);
 
-  // Verifica se o usuário já passou pelo onboarding
   useEffect(() => {
     checkOnboarding();
   }, []);
@@ -23,40 +27,24 @@ export default function LoginScreen() {
   const checkOnboarding = async () => {
     try {
       const hasSeen = await AsyncStorage.getItem('hasSeenOnboarding');
-      if (hasSeen !== 'true') {
-        // Se não viu, manda para o onboarding
-        router.replace('/onboarding');
-      }
-    } catch (e) {
-      console.log('Erro ao checar onboarding', e);
-    } finally {
-      setCheckingOnboarding(false);
-    }
+      if (hasSeen !== 'true') router.replace('/onboarding');
+    } catch (e) { console.log(e); } 
+    finally { setCheckingOnboarding(false); }
   };
 
   async function handleLogin() {
     if (!email || !password) return Alert.alert('Erro', 'Preencha todos os campos');
-
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await api.post('/auth/login', { email, password });
-      
       const { token, user } = response.data;
+      await signIn(token, user);
       
-      await signIn(token, user); 
-      
-      if (user.role === 'CLIENT') {
-        router.replace('/(client)/home');
-      } else if (user.role === 'VET') {
-        router.replace('/(vet)/dashboard');
-      } else if (user.role === 'ADMIN') {
-        router.replace('/(admin)/dashboard');
-      } else {
-        Alert.alert('Erro', 'Tipo de usuário desconhecido.');
-      }
+      if (user.role === 'CLIENT') router.replace('/(client)/home');
+      else if (user.role === 'VET') router.replace('/(vet)/dashboard');
+      else if (user.role === 'ADMIN') router.replace('/(admin)/dashboard');
       
     } catch (error: any) {
-      console.log(error);
       const msg = error.response?.data?.error || 'Verifique suas credenciais.';
       Alert.alert('Falha no Login', msg);
     } finally {
@@ -64,73 +52,69 @@ export default function LoginScreen() {
     }
   }
 
-  // Enquanto checa o AsyncStorage, mostra um loading simples para não piscar a tela
-  if (checkingOnboarding) {
-    return (
-        <View className="flex-1 justify-center items-center bg-background">
-            <ActivityIndicator color="#10B981" size="large" />
-        </View>
-    );
-  }
+  if (checkingOnboarding) return <View className="flex-1 bg-white" />;
 
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      className="flex-1 bg-background justify-center px-6"
+      className="flex-1 bg-white"
     >
       <StatusBar style="dark" />
       
-      <View className="items-center mb-10">
-        <View className="w-24 h-24 bg-secondary-100 rounded-full items-center justify-center mb-4">
-          <Text className="text-4xl">🐾</Text>
-        </View>
-        <Text className="text-3xl font-bold text-primary-700">Cães & Cia</Text>
-        <Text className="text-text-muted mt-2">Hospital Veterinário</Text>
-      </View>
+      <View className="flex-1 px-8 justify-center">
+        {/* Header Animado */}
+        <Animated.View entering={FadeInUp.duration(1000).springify()} className="items-center mb-12">
+          <View className="w-28 h-28 bg-emerald-50 rounded-full items-center justify-center mb-6 shadow-sm border border-emerald-100">
+            <Text className="text-5xl">🐾</Text>
+          </View>
+          <Text className="text-3xl font-bold text-gray-900 mb-2">Bem-vindo!</Text>
+          <Text className="text-gray-500 text-center">
+            Acesse para cuidar da saúde{'\n'}do seu melhor amigo.
+          </Text>
+        </Animated.View>
 
-      <View className="space-y-4">
-        <View>
-          <Text className="text-text-main font-medium mb-1 ml-1">E-mail</Text>
-          <TextInput 
-            className="w-full bg-white border border-gray-200 p-4 rounded-xl text-text-main"
-            placeholder="seu@email.com"
-            autoCapitalize="none"
-            value={email}
+        {/* Formulário Animado */}
+        <Animated.View entering={FadeInDown.duration(1000).delay(200).springify()} className="w-full">
+          <Input 
+            placeholder="E-mail" 
+            icon="mail-outline" 
+            value={email} 
             onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
-        </View>
-
-        <View>
-          <Text className="text-text-main font-medium mb-1 ml-1">Senha</Text>
-          <TextInput 
-            className="w-full bg-white border border-gray-200 p-4 rounded-xl text-text-main"
-            placeholder="Sua senha secreta"
-            secureTextEntry
+          
+          <Input 
+            placeholder="Senha" 
+            icon="lock-closed-outline" 
+            isPassword 
             value={password}
             onChangeText={setPassword}
           />
-        </View>
 
-        <TouchableOpacity 
-          onPress={handleLogin}
-          disabled={loading}
-          className={`w-full py-4 rounded-xl items-center mt-4 ${loading ? 'bg-gray-400' : 'bg-primary-500'}`}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text className="text-white font-bold text-lg">Acessar Conta</Text>
-          )}
-        </TouchableOpacity>
+          <View className="flex-row justify-end mb-6">
+            <Text className="text-primary-500 font-semibold text-sm">Esqueceu a senha?</Text>
+          </View>
+
+          <Button 
+            title="Entrar" 
+            onPress={handleLogin} 
+            loading={loading} 
+            className="mb-4"
+          />
+
+          <Link href="/register" asChild>
+            <Button 
+              title="Criar nova conta" 
+              variant="outline"
+            />
+          </Link>
+        </Animated.View>
       </View>
-
-      <View className="flex-row justify-center mt-8">
-        <Text className="text-text-muted">Não tem conta? </Text>
-        <Link href="/register" asChild>
-          <TouchableOpacity>
-            <Text className="text-primary-500 font-bold">Cadastre-se</Text>
-          </TouchableOpacity>
-        </Link>
+      
+      {/* Footer discreto */}
+      <View className="pb-8 items-center">
+        <Text className="text-gray-400 text-xs">Cães & Cia v1.0.0</Text>
       </View>
     </KeyboardAvoidingView>
   );

@@ -22,13 +22,20 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       pointerEvents="box-none"
     >
       <View
-        className="flex-row bg-white dark:bg-gray-800 rounded-full shadow-lg shadow-black/10 border border-gray-100 dark:border-gray-700 mx-10 py-3 px-2 absolute bottom-6 w-[90%] justify-around items-center"
-        style={{ elevation: 10, backgroundColor }}
+        className="flex-row bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 mx-10 py-3 px-2 absolute bottom-6 w-[90%] justify-around items-center"
+        style={{ 
+          elevation: 10, 
+          backgroundColor,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 5 },
+          shadowOpacity: 0.1,
+          shadowRadius: 10
+        }}
       >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
 
-          // Filtros de rotas ocultas
+          // Filtro de rotas
           // @ts-ignore
           if (options.href === null || route.name === 'pet/[id]' || route.name === 'new-pet' || route.name === 'prescription/create') {
             return null;
@@ -116,17 +123,17 @@ function TabIcon({
       accessibilityRole="tab"
     >
       <Animated.View style={animatedStyle}>
-        {/* CORREÇÃO CRÍTICA AQUI: 
-           Removemos a classe dinâmica `bg-[${activeColor}]`.
-           Usamos `style` para a cor de fundo dinâmica.
-           Mantivemos as classes estáticas no className.
-        */}
+        {/* CORREÇÃO AQUI: Classes estáticas apenas. Cores dinâmicas no style. */}
         <View
-          className={`w-12 h-12 items-center justify-center rounded-full ${
-            isFocused ? 'shadow-sm shadow-emerald-500/40' : ''
-          }`}
+          className="w-12 h-12 items-center justify-center rounded-full"
           style={{ 
-            backgroundColor: isFocused ? activeColor : 'transparent' 
+            backgroundColor: isFocused ? activeColor : 'transparent',
+            // Sombra opcional apenas se focado
+            shadowColor: isFocused ? activeColor : undefined,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isFocused ? 0.3 : 0,
+            shadowRadius: 4,
+            elevation: isFocused ? 4 : 0
           }}
         >
           <Ionicons

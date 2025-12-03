@@ -1,100 +1,137 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../src/services/api';
+
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     cpf: '',
     password: '',
-    vetToken: '' // O Token crucial
+    vetToken: ''
   });
 
   async function handleRegister() {
+    if (!formData.name || !formData.email || !formData.password || !formData.vetToken) {
+        return Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
+    }
+    
+    setLoading(true);
     try {
-      // Validações básicas (pode melhorar com Zod no front depois)
-      if (!formData.vetToken) return Alert.alert('Atenção', 'O código do médico é obrigatório.');
-
       await api.post('/auth/register-client', formData);
-      
       Alert.alert('Sucesso!', 'Conta criada. Faça login para continuar.', [
-        { text: 'OK', onPress: () => router.back() }
+        { text: 'Ir para Login', onPress: () => router.back() }
       ]);
-      
     } catch (error: any) {
       const msg = error.response?.data?.error || 'Erro ao criar conta';
       Alert.alert('Erro', msg);
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="pt-12 px-6 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mb-4">
-          <Ionicons name="arrow-back" size={24} color="#10B981" />
-        </TouchableOpacity>
-        <Text className="text-2xl font-bold text-primary-700">Criar Conta</Text>
-        <Text className="text-text-muted">Preencha os dados do tutor do pet.</Text>
-      </View>
-
-      <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 40 }}>
-        
-        {/* Input Genérico Componentizável */}
-        <View className="space-y-4">
-          <TextInput 
-            className="bg-white border border-gray-200 p-4 rounded-xl"
-            placeholder="Nome Completo"
-            value={formData.name}
-            onChangeText={t => setFormData({...formData, name: t})}
-          />
-          <TextInput 
-            className="bg-white border border-gray-200 p-4 rounded-xl"
-            placeholder="CPF (apenas números)"
-            keyboardType="numeric"
-            value={formData.cpf}
-            onChangeText={t => setFormData({...formData, cpf: t})}
-          />
-          <TextInput 
-            className="bg-white border border-gray-200 p-4 rounded-xl"
-            placeholder="E-mail"
-            autoCapitalize="none"
-            value={formData.email}
-            onChangeText={t => setFormData({...formData, email: t})}
-          />
-          <TextInput 
-            className="bg-white border border-gray-200 p-4 rounded-xl"
-            placeholder="Senha"
-            secureTextEntry
-            value={formData.password}
-            onChangeText={t => setFormData({...formData, password: t})}
-          />
-
-          <View className="mt-4 p-4 bg-secondary-100 rounded-xl border border-primary-500 border-dashed">
-            <Text className="text-primary-700 font-bold mb-2 text-center">Área de Vinculação</Text>
-            <Text className="text-xs text-text-muted text-center mb-3">
-              Insira o código fornecido pelo seu veterinário para vincular seus pets a ele.
-            </Text>
-            <TextInput 
-              className="bg-white border border-gray-200 p-4 rounded-xl text-center font-bold tracking-widest uppercase"
-              placeholder="CÓDIGO (EX: VET-SILVA)"
-              value={formData.vetToken}
-              onChangeText={t => setFormData({...formData, vetToken: t.toUpperCase()})}
-            />
-          </View>
+    <SafeAreaView className="flex-1 bg-white">
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        className="flex-1"
+      >
+        <View className="px-6 py-4 flex-row items-center border-b border-gray-50">
+            <TouchableOpacity onPress={() => router.back()} className="p-2 bg-gray-50 rounded-xl mr-4">
+            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            </TouchableOpacity>
+            <View>
+                <Text className="text-xl font-bold text-gray-900">Criar Conta</Text>
+                <Text className="text-gray-500 text-xs">Junte-se à nossa comunidade</Text>
+            </View>
         </View>
 
-        <TouchableOpacity 
-          onPress={handleRegister}
-          className="w-full bg-primary-500 py-4 rounded-xl items-center mt-8 shadow-lg shadow-primary-500/30"
-        >
-          <Text className="text-white font-bold text-lg">Finalizar Cadastro</Text>
-        </TouchableOpacity>
+        <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
+            <Animated.View entering={FadeInDown.duration(600).springify()}>
+                
+                <Text className="font-bold text-gray-700 mb-2 ml-1">Dados Pessoais</Text>
+                <Input 
+                    placeholder="Nome Completo" 
+                    icon="person-outline"
+                    value={formData.name}
+                    onChangeText={t => setFormData({...formData, name: t})}
+                />
+                <Input 
+                    placeholder="CPF (apenas números)" 
+                    icon="id-card-outline"
+                    keyboardType="numeric"
+                    value={formData.cpf}
+                    onChangeText={t => setFormData({...formData, cpf: t})}
+                />
+                <Input 
+                    placeholder="E-mail" 
+                    icon="mail-outline"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={formData.email}
+                    onChangeText={t => setFormData({...formData, email: t})}
+                />
+                <Input 
+                    placeholder="Criar Senha" 
+                    icon="lock-closed-outline"
+                    isPassword
+                    value={formData.password}
+                    onChangeText={t => setFormData({...formData, password: t})}
+                />
 
-      </ScrollView>
-    </View>
+                {/* Seção Especial: Vínculo Médico */}
+                <Animated.View 
+                    entering={FadeInRight.delay(300).springify()}
+                    className="mt-4 mb-8 bg-emerald-50 p-6 rounded-3xl border border-emerald-100 border-dashed relative overflow-hidden"
+                >
+                    {/* Elementos decorativos de fundo */}
+                    <View className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-100 rounded-full opacity-50" />
+                    
+                    <View className="flex-row items-center mb-3">
+                        <View className="bg-white p-2 rounded-full mr-3 shadow-sm">
+                            <Ionicons name="medical" size={20} color="#10B981" />
+                        </View>
+                        <View>
+                            <Text className="font-bold text-emerald-900 text-lg">Vínculo Médico</Text>
+                            <Text className="text-emerald-700 text-xs">Obrigatório para o cadastro</Text>
+                        </View>
+                    </View>
+                    
+                    <Text className="text-emerald-800/70 text-sm mb-4 leading-5">
+                        Insira o código fornecido pelo seu veterinário para conectar seus pets automaticamente.
+                    </Text>
+
+                    <View className="bg-white rounded-xl border border-emerald-200 flex-row items-center px-4 py-1">
+                        <Ionicons name="qr-code-outline" size={20} color="#10B981" />
+                        <Input 
+                            placeholder="CÓDIGO (EX: VET-SILVA)"
+                            value={formData.vetToken}
+                            onChangeText={t => setFormData({...formData, vetToken: t.toUpperCase()})}
+                            className="flex-1 mb-0 border-0 bg-transparent text-center font-bold tracking-widest text-emerald-900"
+                            autoCapitalize="characters"
+                        />
+                    </View>
+                </Animated.View>
+
+                <Button 
+                    title="Finalizar Cadastro" 
+                    onPress={handleRegister}
+                    loading={loading}
+                    className="mb-10 shadow-xl shadow-primary-500/40"
+                />
+
+            </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
