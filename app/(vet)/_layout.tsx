@@ -1,25 +1,24 @@
-import { Ionicons } from '@expo/vector-icons';
+import { TabBar } from '@/components/ui/components/ui/TabBar';
 import { Tabs } from 'expo-router';
 
 export default function VetLayout() {
   return (
-    <Tabs screenOptions={{ 
-      headerShown: false,
-      tabBarActiveTintColor: '#10B981',
-    }}>
+    <Tabs
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
       <Tabs.Screen 
         name="dashboard" 
-        options={{
-          title: 'Meus Pacientes',
-          tabBarIcon: ({ color }) => <Ionicons name="paw" size={24} color={color} />
-        }} 
+        options={{ title: 'Pacientes' }} 
       />
+      
+      {/* Rotas ocultas */}
+      <Tabs.Screen name="pet/[id]" options={{ href: null }} />
+      <Tabs.Screen name="prescription/create" options={{ href: null }} />
+
       <Tabs.Screen 
         name="profile" 
-        options={{
-          title: 'Meu Perfil',
-          tabBarIcon: ({ color }) => <Ionicons name="medical" size={24} color={color} />
-        }} 
+        options={{ title: 'Perfil' }} 
       />
     </Tabs>
   );

@@ -1,26 +1,27 @@
-import { Ionicons } from '@expo/vector-icons';
+import { TabBar } from '@/components/ui/components/ui/TabBar';
 import { Tabs } from 'expo-router';
 
 export default function ClientLayout() {
   return (
-    <Tabs screenOptions={{ 
-      headerShown: false,
-      tabBarActiveTintColor: '#10B981', // primary-500
-      tabBarStyle: { borderTopWidth: 0, elevation: 5 }
-    }}>
+    <Tabs
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ 
+        headerShown: false,
+        tabBarStyle: { display: 'none' }, // Garante que a nativa suma
+      }}
+    >
       <Tabs.Screen 
         name="home" 
-        options={{
-          title: 'Meus Pets',
-          tabBarIcon: ({ color }) => <Ionicons name="paw" size={24} color={color} />
-        }} 
+        options={{ title: 'Início' }} 
       />
+      
+      {/* Rotas ocultas */}
+      <Tabs.Screen name="new-pet" options={{ href: null }} />
+      <Tabs.Screen name="pet/[id]" options={{ href: null }} />
+
       <Tabs.Screen 
         name="profile" 
-        options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />
-        }} 
+        options={{ title: 'Perfil' }} 
       />
     </Tabs>
   );
