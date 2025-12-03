@@ -11,33 +11,29 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const { bottom } = useSafeAreaInsets();
 
-  // Definição de cores (Primary 500 = Emerald Green conforme seu tailwind.config)
   const activeColor = '#10B981';
-  const inactiveColor = '#9CA3AF'; // Gray 400
+  const inactiveColor = '#9CA3AF';
   const backgroundColor = colorScheme === 'dark' ? '#1F2937' : '#FFFFFF';
 
   return (
     <View
       className="absolute bottom-0 left-0 right-0 items-center justify-end"
-      style={{ paddingBottom: bottom + 10 }} // Ajuste para respeitar a área segura do dispositivo
+      style={{ paddingBottom: bottom + 10 }}
       pointerEvents="box-none"
     >
       <View
         className="flex-row bg-white dark:bg-gray-800 rounded-full shadow-lg shadow-black/10 border border-gray-100 dark:border-gray-700 mx-10 py-3 px-2 absolute bottom-6 w-[90%] justify-around items-center"
-        style={{ elevation: 10, backgroundColor }} // Elevation para sombra no Android
+        style={{ elevation: 10, backgroundColor }}
       >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
 
-          // 1. FILTRAGEM: Remove rotas que não devem aparecer na TabBar
-          // Verifica se href é null (padrão Expo Router para ocultar) ou nomes específicos de rotas internas
-          // @ts-ignore: 'href' existe nas options do Expo Router
+          // Filtros de rotas ocultas
+          // @ts-ignore
           if (options.href === null || route.name === 'pet/[id]' || route.name === 'new-pet' || route.name === 'prescription/create') {
             return null;
           }
 
-          // 2. ÍCONES: Mapeia o nome da rota para um ícone do Ionicons
-          // Adicione aqui outros mapeamentos conforme necessário
           let iconName: any = 'help-circle';
           if (route.name === 'home' || route.name === 'dashboard') iconName = 'paw';
           if (route.name === 'profile') iconName = 'person';
@@ -60,7 +56,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             });
 
             if (!isFocused && !event.defaultPrevented) {
-              // Feedback tátil ao trocar de aba (Apenas iOS suporta styles nativos, Android vibra padrão)
               if (process.env.EXPO_OS === 'ios') {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
@@ -85,7 +80,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   );
 }
 
-// Sub-componente para o Ícone da Aba com Animações
 function TabIcon({
   isFocused,
   onPress,
@@ -102,7 +96,6 @@ function TabIcon({
   inactiveColor: string;
 }) {
 
-  // Animação de escala e "pulo" do ícone
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -112,7 +105,6 @@ function TabIcon({
     };
   });
 
-  // Cor do ícone: Branco se ativo (para contraste com o fundo verde), Cinza se inativo
   const iconColor = isFocused ? 'white' : inactiveColor;
 
   return (
@@ -124,11 +116,18 @@ function TabIcon({
       accessibilityRole="tab"
     >
       <Animated.View style={animatedStyle}>
-        {/* Background Circular: Sólido e colorido se ativo, Transparente se inativo */}
+        {/* CORREÇÃO CRÍTICA AQUI: 
+           Removemos a classe dinâmica `bg-[${activeColor}]`.
+           Usamos `style` para a cor de fundo dinâmica.
+           Mantivemos as classes estáticas no className.
+        */}
         <View
           className={`w-12 h-12 items-center justify-center rounded-full ${
-            isFocused ? 'bg-primary-500 shadow-sm shadow-emerald-500/40' : 'bg-transparent'
+            isFocused ? 'shadow-sm shadow-emerald-500/40' : ''
           }`}
+          style={{ 
+            backgroundColor: isFocused ? activeColor : 'transparent' 
+          }}
         >
           <Ionicons
             name={isFocused ? iconName : `${iconName}-outline` as any}
@@ -138,7 +137,6 @@ function TabIcon({
         </View>
       </Animated.View>
 
-      {/* Label com animação de entrada (Fade In) - só aparece quando selecionado */}
       {isFocused && (
         <Animated.View
           entering={FadeIn.duration(200)}

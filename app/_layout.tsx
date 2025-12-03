@@ -9,8 +9,8 @@ export default function RootLayout() {
       <Stack.Screen name="register" />
       <Stack.Screen name="onboarding" />
 
-      {/* Rotas Protegidas (Grupos) */}
-      {/* É crucial registrar esses grupos para que a navegação interna funcione */}
+      {/* Rotas Protegidas (Grupos de Navegação) */}
+      {/* É obrigatório registrar esses grupos para que o contexto de navegação flua corretamente */}
       <Stack.Screen name="(client)" />
       <Stack.Screen name="(vet)" />
       <Stack.Screen name="(admin)" />

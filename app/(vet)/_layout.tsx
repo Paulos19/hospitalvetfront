@@ -1,4 +1,4 @@
-import { TabBar } from '@/components/ui/components/ui/TabBar';
+import { TabBar } from '@/components/ui/TabBar';
 import { Tabs } from 'expo-router';
 
 export default function VetLayout() {

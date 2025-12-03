@@ -1,4 +1,4 @@
-import { TabBar } from '@/components/ui/components/ui/TabBar';
+import { TabBar } from '@/components/ui/TabBar';
 import { Tabs } from 'expo-router';
 
 export default function ClientLayout() {
@@ -7,7 +7,7 @@ export default function ClientLayout() {
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{ 
         headerShown: false,
-        tabBarStyle: { display: 'none' }, // Garante que a nativa suma
+        tabBarStyle: { display: 'none' },
       }}
     >
       <Tabs.Screen 
