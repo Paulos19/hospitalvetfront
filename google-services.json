@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "228550178720",
+    "project_id": "gerador-2-c8519",
+    "storage_bucket": "gerador-2-c8519.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:228550178720:android:b18fb6b4256493b8c8d6c5",
+        "android_client_info": {
+          "package_name": "com.paulo_s19.hvg"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "228550178720-h97m5cr0ri5nmil9tnqhkjnppoqendl6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYJJe8Ywr3egGnF8dviWL7FWNL5mAb1o8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "228550178720-h97m5cr0ri5nmil9tnqhkjnppoqendl6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

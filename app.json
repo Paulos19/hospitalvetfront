@@ -19,7 +19,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.paulo_s19.hvg",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -45,6 +47,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "191d104e-e9a8-4d32-8403-0ad83fb3e1be"
+      }
+    },
+    "owner": "paulo_s19"
   }
 }
