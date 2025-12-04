@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { ScrollView } from 'moti';
 import { useEffect, useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -11,7 +10,9 @@ import { useAuthStore } from '../src/store/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  // CORREÇÃO: Destruturando 'signIn' em vez de 'login'
+  const { signIn } = useAuthStore(); 
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,8 +38,8 @@ export default function LoginScreen() {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
       
-      // Salva o token no storage e atualiza a store
-      login(token, user);
+      // Chama a função signIn
+      signIn(token, user); 
 
       // Redireciona com base na Role
       if (user.role === 'CLIENT' && !user.myVetId) {
@@ -60,7 +61,6 @@ export default function LoginScreen() {
     }
   }
 
-  // Se estiver verificando o onboarding, não renderiza o formulário
   if (loadingOnboarding) {
     return (
       <SafeAreaView className="flex-1 bg-white items-center justify-center">
@@ -81,7 +81,7 @@ export default function LoginScreen() {
             {/* LOGO ADICIONADA */}
             <Image 
               source={require('../assets/images/logo-hvg.png')} 
-              className="w-32 h-32 mb-4" 
+              className="w-56 h-56" 
               resizeMode="contain"
             />
             <Text className="text-3xl font-bold text-primary-700">

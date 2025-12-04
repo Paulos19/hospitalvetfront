@@ -69,7 +69,7 @@ export default function RegisterScreen() {
             <View className="items-center mb-6">
                 <Image 
                     source={require('../assets/images/logo-hvg.png')} 
-                    className="w-24 h-24" 
+                    className="w-56 h-56" 
                     resizeMode="contain"
                 />
             </View>

@@ -32,7 +32,7 @@ export default function OnboardingScreen() {
         {/* LOGO ADICIONADA */}
         <Image 
           source={require('../assets/images/logo-hvg.png')} 
-          className="w-24 h-24 mb-4" 
+          className="w-36 h-24 mb-36" 
           resizeMode="contain"
         />
 
