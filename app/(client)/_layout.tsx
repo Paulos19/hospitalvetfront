@@ -10,6 +10,8 @@ export default function ClientLayout() {
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
+      {/* --- ABAS VISÍVEIS --- */}
+      
       <Tabs.Screen
         name="home"
         options={{
@@ -40,10 +42,33 @@ export default function ClientLayout() {
         }}
       />
 
-      {/* ROTA OCULTA: pet/[id] */}
-      {/* Removemos tabBarButton para evitar conflito com href: null */}
+      {/* --- ROTAS OCULTAS (Não aparecem na TabBar) --- */}
+
+      {/* 1. Tela de Detalhes do Pet */}
       <Tabs.Screen
         name="pet/[id]"
+        options={{
+          href: null,
+        }}
+      />
+
+      {/* 2. Sub-rotas do Pet (Vacinas e Receitas) */}
+      <Tabs.Screen
+        name="pet/[id]/vaccines"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="pet/[id]/prescriptions"
+        options={{
+          href: null,
+        }}
+      />
+
+      {/* 3. Tela de Notificações */}
+      <Tabs.Screen
+        name="notifications"
         options={{
           href: null,
         }}

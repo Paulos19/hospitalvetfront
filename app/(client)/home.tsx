@@ -18,7 +18,6 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { api } from '../../src/services/api';
 import { useAuthStore } from '../../src/store/authStore';
 
-// Função auxiliar de idade (mantida)
 function getAge(birthDateString?: string) {
     if (!birthDateString) return null;
     const birth = new Date(birthDateString);
@@ -42,13 +41,26 @@ export default function HomeScreen() {
   const [pets, setPets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Estado para contagem de notificações
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  async function fetchPets() {
+  async function fetchData() {
     try {
-      const response = await api.get('/pets');
-      setPets(response.data);
+      // Busca pets e notificações em paralelo
+      const [petsRes, notifRes] = await Promise.all([
+        api.get('/pets'),
+        api.get('/notifications')
+      ]);
+
+      setPets(petsRes.data);
+      
+      // Filtra quantas não foram lidas
+      const unread = notifRes.data.filter((n: any) => !n.read).length;
+      setUnreadCount(unread);
+
     } catch (error) {
-      console.log('Erro ao buscar pets');
+      console.log('Erro ao buscar dados da home');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -57,7 +69,7 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchPets();
+      fetchData();
     }, [])
   );
 
@@ -65,11 +77,11 @@ export default function HomeScreen() {
     <ScreenBackground>
       <SafeAreaView className="flex-1">
         <ScrollView 
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPets(); }} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Header Reformulado (Mais Destaque) */}
+          {/* 1. Header Reformulado */}
           <View className="px-6 pt-6 mb-8 flex-row justify-between items-start">
             <View>
               <Text className="text-gray-400 text-lg font-medium mb-1">
@@ -85,9 +97,15 @@ export default function HomeScreen() {
               </View>
             </View>
             
-            <TouchableOpacity className="mt-1 bg-white p-3 rounded-2xl shadow-sm shadow-gray-200 border border-gray-100">
+            {/* Botão de Notificações com Navegação e Badge Dinâmico */}
+            <TouchableOpacity 
+               onPress={() => router.push('/(client)/notifications')}
+               className="mt-1 bg-white p-3 rounded-2xl shadow-sm shadow-gray-200 border border-gray-100 relative"
+            >
                <Ionicons name="notifications-outline" size={26} color="#374151" />
-               <View className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+               {unreadCount > 0 && (
+                 <View className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+               )}
             </TouchableOpacity>
           </View>
 
@@ -144,7 +162,7 @@ export default function HomeScreen() {
              )}
           </View>
 
-          {/* 3. Ações Rápidas (Grid Moderno) */}
+          {/* 3. Ações Rápidas */}
           <View className="px-6 mb-10">
             <Text className="text-xl font-bold text-gray-800 mb-5">Acesso Rápido</Text>
             
@@ -180,10 +198,9 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* 4. Banner Informativo (Estilo Glass) */}
+          {/* 4. Banner Informativo */}
           <View className="px-6">
             <View className="bg-gray-900 rounded-3xl p-6 flex-row items-center justify-between shadow-xl shadow-gray-900/20 overflow-hidden relative">
-                {/* Efeito de fundo */}
                 <View className="absolute -right-10 -top-10 w-40 h-40 bg-gray-800 rounded-full opacity-50" />
                 
                 <View className="flex-1 mr-4 z-10">
@@ -207,7 +224,6 @@ export default function HomeScreen() {
   );
 }
 
-// Componente Local de Ação Rápida Melhorado
 function QuickAction({ icon, label, subtitle, bg, iconColor }: any) {
     return (
         <TouchableOpacity 
