@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Logo } from '../components/ui/Logo'; // <--- IMPORTAÇÃO DA LOGO
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 
@@ -68,7 +68,7 @@ export default function LoginScreen() {
   if (loadingOnboarding) {
     return (
       <SafeAreaView className="flex-1 bg-white items-center justify-center">
-        <Text className="text-gray-500">Carregando...</Text>
+        <Logo size="small" />
       </SafeAreaView>
     );
   }
@@ -85,45 +85,47 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
 
-          <View className="items-center mb-10">
-            <Image 
-              source={require('../assets/images/logo-hvg.png')} 
-              className="w-56 h-56" 
-              resizeMode="contain"
-            />
-            <Text className="text-3xl font-bold text-primary-700">
-              Bem-vindo
+          <View className="items-center mb-12">
+            {/* LOGO SUBSTITUÍDA AQUI */}
+            <View className="mb-6">
+              <Logo size="large" />
+            </View>
+            
+            <Text className="text-2xl font-bold text-gray-800 text-center">
+              Bem-vindo de volta!
             </Text>
-            <Text className="text-gray-500 mt-2">
-              Entrar na sua conta
+            <Text className="text-gray-500 mt-2 text-center">
+              Acesse para gerenciar a saúde do seu pet.
             </Text>
           </View>
 
-          <Input 
-            placeholder="E-mail" 
-            icon="mail-outline"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <Input 
-            placeholder="Senha" 
-            icon="lock-closed-outline"
-            isPassword
-            value={password}
-            onChangeText={setPassword}
-          />
+          <View className="space-y-4">
+            <Input 
+              placeholder="E-mail" 
+              icon="mail-outline"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <Input 
+              placeholder="Senha" 
+              icon="lock-closed-outline"
+              isPassword
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
 
           <Button 
             title="Entrar" 
             onPress={handleLogin}
             loading={loading}
-            className="mt-6"
+            className="mt-8"
           />
 
           <TouchableOpacity className="mt-4 items-center">
-            <Text className="text-gray-500 text-sm">
+            <Text className="text-gray-400 text-sm font-medium">
               Esqueceu a senha?
             </Text>
           </TouchableOpacity>
@@ -131,7 +133,7 @@ export default function LoginScreen() {
           <View className="flex-row items-center justify-center mt-12">
             <Text className="text-gray-500">Não tem conta?</Text>
             <TouchableOpacity onPress={() => router.push('/register')}>
-              <Text className="text-primary-500 font-bold ml-1">Crie uma!</Text>
+              <Text className="text-primary-500 font-bold ml-1">Cadastre-se</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

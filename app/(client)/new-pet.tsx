@@ -1,159 +1,160 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { api } from '../../src/services/api';
 
 export default function NewPetScreen() {
   const router = useRouter();
+
+  const [name, setName] = useState('');
+  const [type, setType] = useState<'CACHORRO' | 'GATO' | 'OUTRO'>('CACHORRO');
+  const [sex, setSex] = useState<'MACHO' | 'FEMEA'>('MACHO'); // <--- Novo Estado
+  const [breed, setBreed] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [weight, setWeight] = useState('');
   const [loading, setLoading] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', type: 'CACHORRO', breed: '', weight: '' });
 
-  // 1. Abrir Galeria ou Câmera
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5, // Mantém a qualidade baixa para upload rápido
-    });
+  function parseDate(dateStr: string) {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    return isNaN(date.getTime()) ? null : date;
+  }
 
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
+  function handleDateChange(text: string) {
+    let clean = text.replace(/[^0-9]/g, '');
+    if (clean.length > 8) clean = clean.substring(0, 8);
+    if (clean.length >= 5) {
+        clean = clean.substring(0, 2) + '/' + clean.substring(2, 4) + '/' + clean.substring(4);
+    } else if (clean.length >= 3) {
+        clean = clean.substring(0, 2) + '/' + clean.substring(2);
     }
-  };
+    setBirthDate(clean);
+  }
 
-  // 2. Enviar dados
-  const handleSubmit = async () => {
-    if (!form.name || !form.weight) return Alert.alert('Atenção', 'Preencha nome e peso.');
+  async function handleCreate() {
+    if (!name || !birthDate) return Alert.alert('Ops', 'Nome e Data de Nascimento são obrigatórios');
     
+    const dateObj = parseDate(birthDate);
+    if (!dateObj) return Alert.alert('Erro', 'Data inválida. Use DD/MM/AAAA');
+
     setLoading(true);
     try {
-      let photoUrl = null;
-
-      // A) Upload da Imagem
-      if (image) {
-        const filename = image.split('/').pop() || 'pet_photo.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-        const formData = new FormData();
-        formData.append('file', {
-          uri: image,
-          name: filename,
-          type: type,
-        } as any);
-
-        // Ajuste a URL base se necessário
-        const uploadResponse = await fetch('https://hospitalvetbackend.vercel.app/api/upload?filename=' + filename, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
-
-        if (!uploadResponse.ok) throw new Error('Falha no upload da imagem');
-        
-        const uploadResult = await uploadResponse.json();
-        photoUrl = uploadResult.url;
-      }
-
-      // B) Salvar Pet no Banco
       await api.post('/pets', {
-        ...form,
-        photoUrl
+        name,
+        type,
+        sex, // <--- Envia
+        breed,
+        birthDate: dateObj.toISOString(),
+        weight: weight ? parseFloat(weight.replace(',', '.')) : undefined,
       });
 
-      // SUCESSO: Navega para a tela de animação
-      router.replace({
-        pathname: '/success',
-        params: {
-          title: 'Oba! Novo Pet!',
-          subtitle: `${form.name} foi cadastrado com sucesso.`,
-          nextRoute: '/(client)/home',
-          buttonText: 'Voltar para Home'
-        }
-      });
-
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Erro', 'Falha ao salvar. Verifique sua conexão.');
+      Alert.alert('Sucesso', 'Pet cadastrado!');
+      router.back();
+    } catch (error: any) {
+        Alert.alert('Erro', 'Não foi possível cadastrar o pet.');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-      <ScrollView className="flex-1 px-6 pt-4">
-        <View className="flex-row items-center mb-6">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#10B981" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-800 ml-4">Novo Pet</Text>
+    <ScreenBackground>
+      <SafeAreaView className="flex-1">
+        <View className="px-6 py-4 flex-row items-center border-b border-gray-100/50">
+            <TouchableOpacity onPress={() => router.back()} className="bg-white p-2 rounded-full shadow-sm">
+                 <Ionicons name="arrow-back" size={24} color="#059669" />
+            </TouchableOpacity>
+            <Text className="text-xl font-bold text-gray-800 ml-4">Novo Pet</Text>
         </View>
 
-        {/* Foto Avatar */}
-        <View className="items-center mb-8">
-          <TouchableOpacity onPress={pickImage} className="w-32 h-32 bg-gray-100 rounded-full items-center justify-center border-2 border-dashed border-primary-500 overflow-hidden relative">
-            {image ? (
-              <Image source={{ uri: image }} className="w-full h-full" />
-            ) : (
-              <Ionicons name="camera" size={40} color="#10B981" />
-            )}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
+          <ScrollView contentContainerStyle={{ padding: 24 }}>
             
-            <View className="absolute bottom-0 bg-black/30 w-full items-center py-1">
-              <Text className="text-white text-xs font-bold">EDITAR</Text>
+            <Text className="text-gray-600 font-semibold mb-3 ml-1">Quem é o novo integrante?</Text>
+            
+            {/* TIPO */}
+            <View className="flex-row justify-between mb-4 gap-3">
+                {['CACHORRO', 'GATO', 'OUTRO'].map((t) => (
+                    <TouchableOpacity 
+                        key={t}
+                        onPress={() => setType(t as any)}
+                        className={`flex-1 items-center justify-center p-4 rounded-2xl border-2 ${type === t ? 'border-primary-500 bg-primary-50' : 'border-gray-200 bg-white'}`}
+                    >
+                        <Ionicons 
+                            name={t === 'CACHORRO' ? 'paw' : t === 'GATO' ? 'logo-octocat' : 'egg'} 
+                            size={24} 
+                            color={type === t ? '#10B981' : '#9CA3AF'} 
+                        />
+                        <Text className={`text-xs font-bold mt-2 ${type === t ? 'text-primary-700' : 'text-gray-400'}`}>
+                            {t}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
-          </TouchableOpacity>
-        </View>
 
-        <View className="space-y-4">
-          <View>
-            <Text className="ml-1 mb-1 font-medium text-gray-600">Nome do Pet</Text>
-            <TextInput 
-              className="bg-white p-4 rounded-xl border border-gray-200 text-gray-800"
-              value={form.name}
-              onChangeText={t => setForm({...form, name: t})}
-              placeholder="Ex: Rex"
-            />
-          </View>
+            {/* SEXO */}
+            <Text className="text-gray-600 font-semibold mb-2 ml-1">Sexo</Text>
+            <View className="flex-row gap-3 mb-6">
+                 <TouchableOpacity 
+                    onPress={() => setSex('MACHO')}
+                    className={`flex-1 flex-row items-center justify-center p-3 rounded-xl border-2 ${sex === 'MACHO' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
+                >
+                    <Ionicons name="male" size={20} color={sex === 'MACHO' ? '#3B82F6' : '#9CA3AF'} />
+                    <Text className={`ml-2 font-bold ${sex === 'MACHO' ? 'text-blue-600' : 'text-gray-500'}`}>Macho</Text>
+                </TouchableOpacity>
 
-          <View className="flex-row gap-4">
-            <View className="flex-1">
-              <Text className="ml-1 mb-1 font-medium text-gray-600">Raça</Text>
-              <TextInput 
-                className="bg-white p-4 rounded-xl border border-gray-200 text-gray-800"
-                value={form.breed}
-                onChangeText={t => setForm({...form, breed: t})}
-                placeholder="Ex: Poodle"
-              />
+                <TouchableOpacity 
+                    onPress={() => setSex('FEMEA')}
+                    className={`flex-1 flex-row items-center justify-center p-3 rounded-xl border-2 ${sex === 'FEMEA' ? 'border-pink-500 bg-pink-50' : 'border-gray-200 bg-white'}`}
+                >
+                    <Ionicons name="female" size={20} color={sex === 'FEMEA' ? '#EC4899' : '#9CA3AF'} />
+                    <Text className={`ml-2 font-bold ${sex === 'FEMEA' ? 'text-pink-600' : 'text-gray-500'}`}>Fêmea</Text>
+                </TouchableOpacity>
             </View>
-            <View className="flex-1">
-              <Text className="ml-1 mb-1 font-medium text-gray-600">Peso (kg)</Text>
-              <TextInput 
-                className="bg-white p-4 rounded-xl border border-gray-200 text-gray-800"
-                value={form.weight}
-                onChangeText={t => setForm({...form, weight: t})}
-                placeholder="Ex: 5.2"
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-        </View>
 
-        <TouchableOpacity 
-          onPress={handleSubmit}
-          disabled={loading}
-          className="bg-primary-500 mt-10 py-4 rounded-xl items-center shadow-lg shadow-primary-500/30 mb-10"
-        >
-          {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Salvar Pet</Text>}
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+            <View className="space-y-5">
+                <View>
+                    <Text className="text-gray-600 font-semibold mb-2 ml-1">Dados Principais</Text>
+                    <Input placeholder="Nome do Pet" icon="heart-outline" value={name} onChangeText={setName} />
+                </View>
+
+                <View className="flex-row gap-3">
+                    <View className="flex-1">
+                         <Input placeholder="Nascimento" icon="calendar-outline" keyboardType="numeric" maxLength={10} value={birthDate} onChangeText={handleDateChange} />
+                    </View>
+                    <View className="flex-1">
+                        <Input placeholder="Peso (kg)" icon="scale-outline" keyboardType="numeric" value={weight} onChangeText={setWeight} />
+                    </View>
+                </View>
+
+                <Input placeholder="Raça (ex: Poodle, SRD)" icon="ribbon-outline" value={breed} onChangeText={setBreed} />
+            </View>
+
+            <View className="mt-8">
+                <Button title="Salvar Pet" onPress={handleCreate} loading={loading} />
+            </View>
+
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ScreenBackground>
   );
 }

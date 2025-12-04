@@ -1,70 +1,71 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
-interface Pet {
-  id: string;
+interface PetCardProps {
   name: string;
-  breed: string | null;
-  weight: number | null;
-  photoUrl: string | null;
+  breed?: string;
+  age?: string | null;
+  photoUrl?: string | null;
+  onPress: () => void;
 }
 
-export function PetCard({ pet, index }: { pet: Pet; index: number }) {
-  const router = useRouter();
-
+export function PetCard({ name, breed, age, photoUrl, onPress }: PetCardProps) {
   return (
-    <Animated.View 
-      entering={FadeInDown.delay(index * 100).springify()} 
-      className="mb-4"
+    <TouchableOpacity 
+      activeOpacity={0.9} 
+      onPress={onPress}
+      className="mr-5 w-72 h-48" // Aumentei um pouco a altura
     >
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => router.push({ pathname: '/(client)/pet/[id]', params: { id: pet.id } })}
-        className="bg-white p-4 rounded-3xl flex-row items-center shadow-sm border border-gray-100"
+      <LinearGradient
+        // Gradiente levemente inclinado para dar modernidade
+        colors={['#10B981', '#047857']} 
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        className="flex-1 rounded-[32px] p-6 justify-between shadow-2xl shadow-emerald-500/30 overflow-hidden relative"
       >
-        {/* Imagem com Borda Colorida */}
-        <View className="relative">
-            <View className="w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden border-2 border-white shadow-sm">
-                <Image 
-                    source={{ uri: pet.photoUrl || 'https://via.placeholder.com/150' }} 
-                    className="w-full h-full"
-                    resizeMode="cover"
-                />
+        {/* Elementos Decorativos de Fundo (Círculos) */}
+        <View className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+        <View className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-400/20 rounded-full blur-xl" />
+
+        <View className="flex-row justify-between items-start z-10">
+            <View>
+                {/* Badge da Raça com mais contraste */}
+                <View className="bg-white/20 px-3 py-1.5 rounded-full self-start mb-3 border border-white/10">
+                    <Text className="text-white text-xs font-bold tracking-wide uppercase">
+                        {breed || 'Raça não def.'}
+                    </Text>
+                </View>
+                
+                <Text className="text-white text-3xl font-extrabold tracking-tight shadow-sm">
+                    {name}
+                </Text>
+                <Text className="text-emerald-50 text-base font-medium mt-1 opacity-90">
+                    {age || 'Idade desconhecida'}
+                </Text>
             </View>
-            {/* Badge de "Tipo" (ícone estático por enquanto) */}
-            <View className="absolute -bottom-2 -right-2 bg-primary-100 p-1.5 rounded-full border-2 border-white">
-                <Ionicons name="paw" size={12} color="#10B981" />
+
+            {/* Foto com borda mais grossa e sombra */}
+            <View className="w-20 h-20 rounded-full border-[3px] border-white/40 bg-white/10 items-center justify-center overflow-hidden shadow-lg">
+                 {photoUrl ? (
+                    <Image source={{ uri: photoUrl }} className="w-full h-full" />
+                 ) : (
+                    <Ionicons name="paw" size={36} color="white" />
+                 )}
             </View>
         </View>
 
-        <View className="ml-5 flex-1 justify-center py-1">
-            <View className="flex-row justify-between items-center mb-1">
-                <Text className="text-xl font-bold text-gray-800">{pet.name}</Text>
-                <Ionicons name="chevron-forward" size={20} color="#E5E7EB" />
+        {/* Rodapé do Card */}
+        <View className="flex-row items-center justify-between mt-2 z-10">
+            <View className="flex-row items-center space-x-2 bg-black/10 px-3 py-1.5 rounded-lg">
+                <Ionicons name="calendar" size={14} color="#A7F3D0" />
+                <Text className="text-emerald-50 text-xs font-semibold">Vacina: --/--</Text>
             </View>
-            
-            <Text className="text-gray-500 text-sm mb-3">
-                {pet.breed || 'Sem raça definida'}
-            </Text>
-
-            {/* Info Chips */}
-            <View className="flex-row gap-2">
-                <View className="bg-gray-50 px-3 py-1 rounded-lg">
-                    <Text className="text-xs font-medium text-gray-600">
-                        ⚖️ {pet.weight ? `${pet.weight}kg` : '--'}
-                    </Text>
-                </View>
-                {/* Aqui poderíamos ter lógica de "Vacinas OK" futura */}
-                <View className="bg-emerald-50 px-3 py-1 rounded-lg">
-                    <Text className="text-xs font-bold text-emerald-600">
-                        Ativo
-                    </Text>
-                </View>
+            <View className="bg-white/20 p-1 rounded-full">
+                <Ionicons name="arrow-forward" size={20} color="white" />
             </View>
         </View>
-      </TouchableOpacity>
-    </Animated.View>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 }

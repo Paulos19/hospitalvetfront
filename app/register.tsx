@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Logo } from '../components/ui/Logo'; // <--- Importando a Logo
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 
@@ -38,20 +39,16 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      // 1. Criar conta
       const registerResponse = await api.post('/auth/register-client', {
         name,
         email,
         password
       });
 
-      // 2. Fazer login automático após registro
       const loginResponse = await api.post('/auth/login', { email, password });
       const { token, user } = loginResponse.data;
 
       signIn(token, user);
-
-      // Redireciona para o vínculo com o veterinário (fluxo padrão de novo cliente)
       router.replace('/link-vet');
 
     } catch (error: any) {
@@ -79,10 +76,15 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="mb-8">
+          {/* ADICIONANDO A LOGO AQUI */}
+          <View className="items-center mb-6">
+            <Logo size="medium" showText={false} />
+          </View>
+
+          <View className="mb-6 items-center">
             <Text className="text-3xl font-bold text-primary-700">Crie sua conta</Text>
-            <Text className="text-gray-500 mt-2">
-              Preencha os dados abaixo para começar.
+            <Text className="text-gray-500 mt-2 text-center">
+              Junte-se ao HVG e cuide do seu pet com tecnologia.
             </Text>
           </View>
 

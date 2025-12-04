@@ -1,178 +1,226 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import LottieView from 'lottie-react-native'; // <--- Importação do Lottie
-import { useEffect, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import {
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { PetCard } from '../../components/home/PetCard';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { api } from '../../src/services/api';
 import { useAuthStore } from '../../src/store/authStore';
 
-// Import dos componentes customizados
-import { AppointmentCard } from '../../components/home/AppointmentCard';
-import { HomeSkeleton } from '../../components/home/HomeSkeleton';
-import { PetCard } from '../../components/home/PetCard';
-
-// Tipos
-interface Pet {
-  id: string;
-  name: string;
-  breed: string | null;
-  weight: number | null;
-  photoUrl: string | null;
+// Função auxiliar de idade (mantida)
+function getAge(birthDateString?: string) {
+    if (!birthDateString) return null;
+    const birth = new Date(birthDateString);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+    if (age === 0) {
+        const months = (today.getFullYear() - birth.getFullYear()) * 12 + (today.getMonth() - birth.getMonth());
+        return `${months} meses`;
+    }
+    return `${age} anos`;
 }
 
-interface Appointment {
-  id: string;
-  date: string;
-  reason: string;
-  pet: { name: string };
-  doctor: { name: string };
-}
-
-export default function ClientHome() {
-  const { user } = useAuthStore(); 
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingInitial, setLoadingInitial] = useState(true);
+export default function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
+  
+  const [pets, setPets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  async function fetchData() {
+  async function fetchPets() {
     try {
-      if (!refreshing) setLoadingInitial(true);
-
-      const [petsRes, appRes] = await Promise.all([
-        api.get('/pets'),
-        api.get('/appointments') 
-      ]);
-      
-      setPets(petsRes.data);
-      setAppointments(appRes.data);
+      const response = await api.get('/pets');
+      setPets(response.data);
     } catch (error) {
-      console.log('Erro ao buscar dados', error);
+      console.log('Erro ao buscar pets');
     } finally {
+      setLoading(false);
       setRefreshing(false);
-      setLoadingInitial(false);
     }
   }
 
-  useEffect(() => { fetchData(); }, []);
-
-  // Header Component para o FlatList
-  const ListHeader = () => (
-    <View className="mb-6">
-        {/* Saudação e Botão de Adicionar */}
-        <View className="flex-row justify-between items-center mb-8">
-            <View>
-                <Text className="text-gray-500 font-medium">Bem-vindo de volta,</Text>
-                <Text className="text-2xl font-bold text-gray-800">
-                    {user?.name?.split(' ')[0] || 'Tutor'}! 👋
-                </Text>
-            </View>
-            <TouchableOpacity
-                onPress={() => router.push('/(client)/new-pet')}
-                className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm border border-gray-100 active:bg-gray-50"
-            >
-                <Ionicons name="add" size={24} color="#10B981" />
-            </TouchableOpacity>
-        </View>
-
-        {/* Seção de Agendamentos (Carrossel) */}
-        {appointments.length > 0 ? (
-            <View className="mb-8">
-                <View className="flex-row justify-between items-end mb-4">
-                    <Text className="text-xl font-bold text-gray-800">Próximas Consultas</Text>
-                    <TouchableOpacity>
-                        <Text className="text-primary-500 font-bold text-xs">Ver todas</Text>
-                    </TouchableOpacity>
-                </View>
-                
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingRight: 20 }}
-                >
-                    {appointments.map((app) => (
-                        <AppointmentCard key={app.id} appointment={app} />
-                    ))}
-                </ScrollView>
-            </View>
-        ) : (
-            // Estado vazio de agendamentos (Discreto)
-            <View className="mb-8 bg-white p-6 rounded-3xl border border-gray-100 border-dashed items-center flex-row shadow-sm">
-                <View className="bg-gray-50 p-3 rounded-full mr-4">
-                    <Ionicons name="calendar-outline" size={24} color="#9CA3AF" />
-                </View>
-                <View className="flex-1">
-                    <Text className="font-bold text-gray-700">Tudo tranquilo!</Text>
-                    <Text className="text-gray-400 text-xs">Nenhuma consulta agendada para os próximos dias.</Text>
-                </View>
-            </View>
-        )}
-
-        <Text className="text-xl font-bold text-gray-800 mb-4">Meus Pets</Text>
-    </View>
+  useFocusEffect(
+    useCallback(() => {
+      fetchPets();
+    }, [])
   );
-
-  // Renderização do Skeleton
-  if (loadingInitial) {
-    return (
-        <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-            <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
-            <HomeSkeleton /> 
-        </SafeAreaView>
-    );
-  }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
-      
-      <FlatList
-        data={pets}
-        keyExtractor={item => item.id}
-        renderItem={({ item, index }) => <PetCard pet={item} index={index} />}
-        contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-        ListHeaderComponent={ListHeader}
-        refreshControl={
-            <RefreshControl 
-                refreshing={refreshing} 
-                onRefresh={fetchData} 
-                tintColor="#10B981"
-                colors={['#10B981']}
-            />
-        }
-        showsVerticalScrollIndicator={false}
-        // 👇 AQUI ESTÁ A IMPLEMENTAÇÃO DO LOTTIE
-        ListEmptyComponent={
-          <View className="items-center justify-center mt-2 py-8 bg-white rounded-3xl shadow-sm border border-gray-100">
-             <View className="w-64 h-64">
-                <LottieView
-                  // Certifique-se que o arquivo existe neste caminho!
-                  source={require('../../assets/animations/empty-state.json')}
-                  autoPlay
-                  loop
-                  style={{ width: '100%', height: '100%' }}
-                />
+    <ScreenBackground>
+      <SafeAreaView className="flex-1">
+        <ScrollView 
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPets(); }} />}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* 1. Header Reformulado (Mais Destaque) */}
+          <View className="px-6 pt-6 mb-8 flex-row justify-between items-start">
+            <View>
+              <Text className="text-gray-400 text-lg font-medium mb-1">
+                Olá, <Text className="text-gray-800 font-bold">{user?.name?.split(' ')[0]}</Text> 👋
+              </Text>
+              <View className="flex-row items-baseline">
+                <Text className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                    HVG
+                </Text>
+                <Text className="text-3xl font-light text-emerald-600 ml-2">
+                    Cães & Cia
+                </Text>
+              </View>
             </View>
             
-            <Text className="text-lg font-bold text-gray-800 mt-[-20px]">
-              Nenhum pet encontrado
-            </Text>
-            
-            <Text className="text-gray-400 text-center px-10 mt-2 text-sm leading-5">
-                Cadastre seu primeiro amigo para começar a acompanhar a saúde dele.
-            </Text>
-
-            <TouchableOpacity 
-                onPress={() => router.push('/(client)/new-pet')}
-                className="mt-6 px-8 py-3 bg-primary-500 rounded-xl shadow-lg shadow-primary-500/30 active:bg-primary-600"
-            >
-                <Text className="text-white font-bold">Adicionar Pet</Text>
+            <TouchableOpacity className="mt-1 bg-white p-3 rounded-2xl shadow-sm shadow-gray-200 border border-gray-100">
+               <Ionicons name="notifications-outline" size={26} color="#374151" />
+               <View className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
             </TouchableOpacity>
           </View>
-        }
-      />
-    </SafeAreaView>
+
+          {/* 2. Seção Meus Pets */}
+          <View className="mb-10">
+             <View className="flex-row justify-between items-center px-6 mb-5">
+                <Text className="text-xl font-bold text-gray-800">Meus Pets</Text>
+                <TouchableOpacity 
+                    onPress={() => router.push('/new-pet')}
+                    className="flex-row items-center space-x-1"
+                >
+                    <Ionicons name="add-circle" size={20} color="#10B981" />
+                    <Text className="text-emerald-600 font-bold text-sm">Novo Pet</Text>
+                </TouchableOpacity>
+             </View>
+             
+             {loading ? (
+                <View className="px-6 flex-row gap-4">
+                    <Skeleton className="w-72 h-48 rounded-[32px]" />
+                    <Skeleton className="w-10 h-48 rounded-l-[32px]" />
+                </View>
+             ) : pets.length === 0 ? (
+                <View className="px-6">
+                     <TouchableOpacity 
+                        onPress={() => router.push('/new-pet')}
+                        className="bg-gray-50 p-8 rounded-[32px] items-center border-2 border-dashed border-gray-200"
+                    >
+                        <View className="bg-emerald-100 p-4 rounded-full mb-3">
+                            <Ionicons name="paw" size={32} color="#10B981" />
+                        </View>
+                        <Text className="text-gray-600 font-bold text-lg">Cadastre seu amigo</Text>
+                        <Text className="text-gray-400 text-center mt-1">
+                            Tenha todo o histórico de saúde na palma da mão.
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+             ) : (
+                <FlatList
+                    horizontal
+                    data={pets}
+                    keyExtractor={(item) => item.id}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 24 }}
+                    renderItem={({ item }) => (
+                        <PetCard 
+                            name={item.name} 
+                            breed={item.breed}
+                            age={getAge(item.birthDate)}
+                            photoUrl={item.photoUrl}
+                            onPress={() => router.push(`/pet/${item.id}`)}
+                        />
+                    )}
+                />
+             )}
+          </View>
+
+          {/* 3. Ações Rápidas (Grid Moderno) */}
+          <View className="px-6 mb-10">
+            <Text className="text-xl font-bold text-gray-800 mb-5">Acesso Rápido</Text>
+            
+            <View className="flex-row flex-wrap justify-between gap-y-4">
+                <QuickAction 
+                    icon="calendar" 
+                    label="Agendar" 
+                    subtitle="Consultas"
+                    bg="bg-blue-50" 
+                    iconColor="#3B82F6" 
+                />
+                <QuickAction 
+                    icon="document-text" 
+                    label="Receitas" 
+                    subtitle="Histórico"
+                    bg="bg-purple-50" 
+                    iconColor="#A855F7" 
+                />
+                <QuickAction 
+                    icon="shield-checkmark" 
+                    label="Vacinas" 
+                    subtitle="Carteirinha"
+                    bg="bg-emerald-50" 
+                    iconColor="#10B981" 
+                />
+                <QuickAction 
+                    icon="chatbubble-ellipses" 
+                    label="Contato" 
+                    subtitle="Fale conosco"
+                    bg="bg-orange-50" 
+                    iconColor="#F97316" 
+                />
+            </View>
+          </View>
+
+          {/* 4. Banner Informativo (Estilo Glass) */}
+          <View className="px-6">
+            <View className="bg-gray-900 rounded-3xl p-6 flex-row items-center justify-between shadow-xl shadow-gray-900/20 overflow-hidden relative">
+                {/* Efeito de fundo */}
+                <View className="absolute -right-10 -top-10 w-40 h-40 bg-gray-800 rounded-full opacity-50" />
+                
+                <View className="flex-1 mr-4 z-10">
+                    <View className="bg-emerald-500 self-start px-3 py-1 rounded-full mb-3">
+                        <Text className="text-white text-[10px] font-bold uppercase">Dica do Vet</Text>
+                    </View>
+                    <Text className="text-white font-bold text-lg mb-1">Check-up Preventivo</Text>
+                    <Text className="text-gray-400 text-sm leading-5">
+                        Exames de rotina ajudam a prevenir doenças silenciosas. Agende!
+                    </Text>
+                </View>
+                <View className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm z-10">
+                    <Ionicons name="pulse" size={28} color="#10B981" />
+                </View>
+            </View>
+          </View>
+
+        </ScrollView>
+      </SafeAreaView>
+    </ScreenBackground>
   );
+}
+
+// Componente Local de Ação Rápida Melhorado
+function QuickAction({ icon, label, subtitle, bg, iconColor }: any) {
+    return (
+        <TouchableOpacity 
+            activeOpacity={0.7}
+            className="w-[48%] bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm shadow-gray-100 flex-row items-center"
+        >
+            <View className={`p-3 rounded-2xl ${bg} mr-3`}>
+                <Ionicons name={icon} size={22} color={iconColor} />
+            </View>
+            <View className="flex-1">
+                <Text className="font-bold text-gray-800 text-sm">{label}</Text>
+                <Text className="text-gray-400 text-[10px] mt-0.5">{subtitle}</Text>
+            </View>
+        </TouchableOpacity>
+    )
 }

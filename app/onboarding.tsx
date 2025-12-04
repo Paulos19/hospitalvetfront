@@ -3,14 +3,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { Alert, Image, Text, TouchableOpacity, View } from 'react-native'; // <--- Image importada
+import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Logo } from '../components/ui/Logo'; // <--- IMPORTAÇÃO
 
 export default function OnboardingScreen() {
   const router = useRouter();
 
   async function handleFinish() {
-    // 1. Pedir permissão de localização
     const { status } = await Location.requestForegroundPermissionsAsync();
     
     if (status !== 'granted') {
@@ -18,26 +19,21 @@ export default function OnboardingScreen() {
       return;
     }
 
-    // 2. Salvar que o usuário já viu o onboarding
     await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-
-    // 3. Ir para o Login
     router.replace('/');
   }
 
   return (
     <SafeAreaView className="flex-1 bg-white items-center justify-between py-10 px-6">
-      <View className="items-center mt-10 w-full">
+      <View className="items-center mt-10 w-full flex-1 justify-center">
         
-        {/* LOGO ADICIONADA */}
-        <Image 
-          source={require('../assets/images/logo-hvg.png')} 
-          className="w-36 h-24 mb-36" 
-          resizeMode="contain"
-        />
+        {/* LOGO NO TOPO */}
+        <View className="mb-10 scale-110">
+           <Logo size="medium" />
+        </View>
 
-        {/* ANIMAÇÃO SUBSTITUINDO O ÍCONE */}
-        <View className="w-full h-72 items-center justify-center mb-6">
+        {/* ANIMAÇÃO */}
+        <View className="w-full h-64 items-center justify-center mb-6">
             <LottieView
               source={require('../assets/animations/dog-onboarding.json')}
               autoPlay
@@ -47,29 +43,28 @@ export default function OnboardingScreen() {
             />
         </View>
         
-        <Text className="text-3xl font-bold text-primary-700 text-center mb-4">
+        <Text className="text-3xl font-extrabold text-slate-800 text-center mb-4">
           Cães & Cia
         </Text>
         
-        <Text className="text-text-muted text-center text-lg leading-6 px-4">
-          O cuidado que seu melhor amigo merece.{'\n'}
-          Gerencie vacinas, consultas e histórico médico em um só lugar.
+        <Text className="text-gray-500 text-center text-lg leading-7 px-4">
+          O jeito moderno de cuidar do seu melhor amigo. Vacinas, consultas e muito mais.
         </Text>
       </View>
 
-      <View className="w-full">
-        <View className="flex-row items-center justify-center mb-8 space-x-2">
-            <Ionicons name="location-outline" size={20} color="#6B7280" />
-            <Text className="text-text-muted text-sm text-center">
-                Precisamos da sua localização para{'\n'}melhor experiência.
+      <View className="w-full mt-auto">
+        <View className="flex-row items-center justify-center mb-8 space-x-2 bg-gray-50 py-3 rounded-lg border border-gray-100">
+            <Ionicons name="location-outline" size={20} color="#9CA3AF" />
+            <Text className="text-gray-500 text-xs text-center font-medium">
+               Habilite a localização para uma melhor experiência
             </Text>
         </View>
 
         <TouchableOpacity 
           onPress={handleFinish}
-          className="w-full bg-primary-500 py-4 rounded-2xl items-center shadow-lg shadow-primary-500/30 active:bg-primary-600"
+          className="w-full bg-primary-500 py-4 rounded-2xl items-center shadow-xl shadow-primary-500/25 active:bg-primary-600"
         >
-          <Text className="text-white font-bold text-xl">Começar Agora</Text>
+          <Text className="text-white font-bold text-lg">Começar Agora</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
