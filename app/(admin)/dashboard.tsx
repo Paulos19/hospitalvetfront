@@ -1,7 +1,9 @@
+// app/(admin)/dashboard.tsx
+
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Clipboard, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../src/services/api';
 
@@ -11,76 +13,122 @@ interface Vet {
   email: string;
   crmv: string;
   inviteToken: string;
+  patientsCount: number; // Assumindo que a API retorna isso
 }
 
 export default function AdminDashboard() {
-  const [vets, setVets] = useState<Vet[]>([]);
   const router = useRouter();
+  const [vets, setVets] = useState<Vet[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  async function fetchVets() {
+  async function fetchVets(searchQuery = '') {
+    setLoading(true);
     try {
-      // Nota: Precisaremos garantir que essa rota exista no backend
-      const res = await api.get('/admin/vets');
-      setVets(res.data);
+      // Endpoint para buscar todos os Vets
+      const response = await api.get('/admin/vets', {
+        params: { search: searchQuery }
+      });
+      setVets(response.data);
     } catch (error) {
-      console.log('Erro ao buscar veterinários');
+      console.error("Erro ao buscar veterinários:", error);
+      Alert.alert('Erro', 'Falha ao carregar lista de veterinários.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }
 
-  useEffect(() => { fetchVets(); }, []);
+  useEffect(() => {
+    fetchVets();
+  }, []);
 
-  const copyToken = (token: string) => {
-    Clipboard.setString(token);
-    Alert.alert('Copiado!', `Token ${token} pronto para envio.`);
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchVets(search);
   };
 
-  const renderVet = ({ item }: { item: Vet }) => (
-    <View className="bg-white p-4 rounded-xl mb-3 shadow-sm border border-gray-100">
-      <View className="flex-row justify-between items-start">
-        <View>
-          <Text className="text-lg font-bold text-primary-700">{item.name}</Text>
-          <Text className="text-text-muted text-sm">{item.email}</Text>
-          <Text className="text-text-muted text-xs mt-1">CRMV: {item.crmv || 'N/A'}</Text>
-        </View>
-        <TouchableOpacity 
-          onPress={() => copyToken(item.inviteToken)}
-          className="bg-secondary-100 px-3 py-1 rounded-lg border border-primary-500 border-dashed"
-        >
-          <Text className="text-primary-700 font-bold text-xs">COPIAR TOKEN</Text>
-        </TouchableOpacity>
+  const filteredVets = vets.filter(vet =>
+    vet.name.toLowerCase().includes(search.toLowerCase()) ||
+    vet.crmv.toLowerCase().includes(search.toLowerCase())
+  );
+  
+  // Card simplificado para o veterinário
+  const renderVetCard = ({ item }: { item: Vet }) => (
+    <TouchableOpacity
+      className="bg-white p-4 mb-3 rounded-2xl shadow-sm border border-gray-100 active:bg-gray-50 flex-row items-center"
+      onPress={() => router.push(`/admin/vet/${item.id}` as any)}
+    >
+      <View className="bg-emerald-100 p-3 rounded-xl mr-3">
+        <Ionicons name="medical-outline" size={24} color="#10B981" />
       </View>
-      <View className="mt-2 bg-gray-50 p-2 rounded flex-row items-center">
-        <Ionicons name="key-outline" size={14} color="#6B7280" />
-        <Text className="text-text-muted text-xs ml-2 font-mono">{item.inviteToken}</Text>
+      <View className="flex-1">
+        <Text className="font-bold text-lg text-gray-800">{item.name}</Text>
+        <Text className="text-gray-500 text-sm">CRMV: {item.crmv}</Text>
       </View>
-    </View>
+      <Ionicons name="chevron-forward-outline" size={24} color="#D1D5DB" />
+    </TouchableOpacity>
   );
 
-  return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="flex-1 px-6 pt-4">
-        <View className="flex-row justify-between items-center mb-6">
-          <View>
-            <Text className="text-2xl font-bold text-primary-700">Administração</Text>
-            <Text className="text-text-muted">Gerencie o corpo clínico.</Text>
-          </View>
-          <TouchableOpacity 
-            onPress={() => router.push('/(admin)/create-vet')}
-            className="bg-primary-700 w-12 h-12 rounded-full items-center justify-center shadow-lg"
-          >
-            <Ionicons name="person-add" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
+  const ListHeader = () => (
+    <>
+      <Text className="text-2xl font-bold text-gray-800 mt-4 mb-4">Gerenciar Veterinários</Text>
 
-        <FlatList 
-          data={vets}
-          keyExtractor={item => item.id}
-          renderItem={renderVet}
-          ListEmptyComponent={
-            <Text className="text-center text-text-muted mt-10">Nenhum veterinário cadastrado.</Text>
-          }
+      {/* Barra de Busca */}
+      <View className="flex-row items-center bg-white p-3 rounded-xl mb-4 shadow-sm border border-gray-100">
+        <Ionicons name="search" size={20} color="#9CA3AF" />
+        <TextInput
+          className="flex-1 ml-3 text-gray-700"
+          placeholder="Buscar por nome ou CRMV..."
+          value={search}
+          onChangeText={setSearch}
+          onEndEditing={() => fetchVets(search)}
         />
       </View>
+
+      {/* Botão de Criação */}
+      <TouchableOpacity
+        className="flex-row items-center justify-center bg-emerald-500 p-4 rounded-xl mb-6 shadow-md shadow-emerald-500/40 active:bg-emerald-600"
+        onPress={() => router.push('/(admin)/create-vet')}
+      >
+        <Ionicons name="person-add-outline" size={20} color="#fff" />
+        <Text className="text-white font-bold text-base ml-2">Cadastrar Novo Médico</Text>
+      </TouchableOpacity>
+    </>
+  );
+  
+  // Exibição de Loading
+  if (loading) {
+    return (
+        <SafeAreaView className="flex-1 bg-gray-50 p-6">
+            <Text className="text-center mt-20 text-gray-500">Carregando dados...</Text>
+        </SafeAreaView>
+    ); // Substituir por um Skeleton mais tarde
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <FlatList
+        data={filteredVets}
+        keyExtractor={(item) => item.id}
+        renderItem={renderVetCard}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 50 }}
+        ListHeaderComponent={ListHeader}
+        refreshControl={
+            <RefreshControl 
+                refreshing={refreshing} 
+                onRefresh={onRefresh} 
+                tintColor="#10B981"
+            />
+        }
+        ListEmptyComponent={() => (
+            <View className="items-center mt-10 p-6 bg-white rounded-xl">
+                <Ionicons name="people-outline" size={60} color="#D1D5DB" />
+                <Text className="text-gray-500 mt-3">Nenhum veterinário encontrado.</Text>
+            </View>
+        )}
+      />
     </SafeAreaView>
   );
 }

@@ -1,107 +1,114 @@
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../src/services/api';
 
 export default function CreateVetScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    cpf: '', // Lembrete: Adicionar máscara de CPF se desejar depois
     crmv: '',
-    specialty: ''
+    specialty: '',
   });
 
-  async function handleCreate() {
-    if (!form.name || !form.email || !form.password || !form.crmv) {
-      return Alert.alert('Erro', 'Preencha os campos obrigatórios.');
+  async function handleRegister() {
+    // Validação básica do formulário no frontend
+    if (!formData.name || !formData.email || !formData.password || !formData.crmv) {
+        return Alert.alert('Atenção', 'Preencha todos os campos obrigatórios (Nome, E-mail, Senha, CRMV).');
     }
-
+    
     setLoading(true);
     try {
-      const res = await api.post('/admin/create-vet', form);
-      Alert.alert(
-        'Sucesso!', 
-        `Veterinário cadastrado.\nToken gerado: ${res.data.inviteToken}`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      const response = await api.post('/admin/create-vet', formData);
+      const newVet = response.data.vet;
+
+      // Navega para a tela de sucesso, mostrando o token de convite
+      router.replace({
+        pathname: '/success',
+        params: {
+          title: 'Veterinário Cadastrado!',
+          // Passamos o token gerado para a tela de sucesso exibir
+          subtitle: `O código de convite é ${newVet.inviteToken}. O médico deverá usá-lo para vincular seus clientes.`,
+          nextRoute: '/(admin)/dashboard',
+          buttonText: 'Ir para o Dashboard'
+        }
+      });
+      
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.error || 'Falha ao cadastrar.');
+      const msg = error.response?.data?.error || 'Erro ao cadastrar veterinário. Verifique os dados.';
+      Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView className="flex-1 px-6">
-        <View className="flex-row items-center my-6">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#047857" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-primary-700 ml-4">Novo Veterinário</Text>
-        </View>
-
-        <View className="space-y-4">
-          <TextInput 
-            className="bg-white p-4 rounded-xl border border-gray-200"
-            placeholder="Nome Completo"
-            value={form.name}
-            onChangeText={t => setForm({...form, name: t})}
-          />
-          <TextInput 
-            className="bg-white p-4 rounded-xl border border-gray-200"
-            placeholder="E-mail Profissional"
-            autoCapitalize="none"
-            value={form.email}
-            onChangeText={t => setForm({...form, email: t})}
-          />
-          <TextInput 
-            className="bg-white p-4 rounded-xl border border-gray-200"
-            placeholder="Senha Inicial"
-            secureTextEntry
-            value={form.password}
-            onChangeText={t => setForm({...form, password: t})}
-          />
-          <TextInput 
-            className="bg-white p-4 rounded-xl border border-gray-200"
-            placeholder="CPF (apenas números)"
-            keyboardType="numeric"
-            value={form.cpf}
-            onChangeText={t => setForm({...form, cpf: t})}
-          />
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 50 }}>
           
-          <View className="flex-row gap-4">
-            <TextInput 
-              className="flex-1 bg-white p-4 rounded-xl border border-gray-200"
-              placeholder="CRMV"
-              value={form.crmv}
-              onChangeText={t => setForm({...form, crmv: t})}
+          <View className="bg-white p-6 rounded-3xl mb-6 shadow-md border-t-4 border-emerald-500">
+            <Text className="text-xl font-bold text-gray-800 mb-4 flex-row items-center">
+                <Ionicons name="person-add-outline" size={24} color="#10B981" />
+                <Text className="ml-2"> Novo Cadastro</Text>
+            </Text>
+
+            <Text className="font-bold text-gray-700 mb-2 mt-4 ml-1">Dados de Acesso</Text>
+            <Input 
+                placeholder="E-mail" 
+                icon="mail-outline"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={formData.email}
+                onChangeText={t => setFormData({...formData, email: t})}
             />
-            <TextInput 
-              className="flex-1 bg-white p-4 rounded-xl border border-gray-200"
-              placeholder="Especialidade"
-              value={form.specialty}
-              onChangeText={t => setForm({...form, specialty: t})}
+            <Input 
+                placeholder="Senha (Mín. 6 caracteres)" 
+                icon="lock-closed-outline"
+                isPassword
+                value={formData.password}
+                onChangeText={t => setFormData({...formData, password: t})}
+            />
+
+            <Text className="font-bold text-gray-700 mb-2 mt-4 ml-1">Dados Profissionais</Text>
+            <Input 
+                placeholder="Nome Completo" 
+                icon="person-outline"
+                value={formData.name}
+                onChangeText={t => setFormData({...formData, name: t})}
+            />
+            <Input 
+                placeholder="CRMV" 
+                icon="id-card-outline"
+                value={formData.crmv}
+                onChangeText={t => setFormData({...formData, crmv: t})}
+            />
+            <Input 
+                placeholder="Especialidade (Opcional)" 
+                icon="bandage-outline"
+                value={formData.specialty}
+                onChangeText={t => setFormData({...formData, specialty: t})}
+            />
+
+            <Button
+              title="Cadastrar Veterinário"
+              onPress={handleRegister}
+              loading={loading}
+              className="mt-8 bg-emerald-500"
             />
           </View>
-        </View>
-
-        <TouchableOpacity 
-          onPress={handleCreate}
-          disabled={loading}
-          className="bg-primary-700 mt-8 py-4 rounded-xl items-center shadow-lg"
-        >
-          <Text className="text-white font-bold text-lg">
-            {loading ? 'Cadastrando...' : 'Cadastrar Médico'}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
