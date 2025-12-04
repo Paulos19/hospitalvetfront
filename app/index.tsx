@@ -1,121 +1,134 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
+import { ScrollView } from 'moti';
 import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Alert, Image, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 
-// Componentes UI
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
-  
-  const signIn = useAuthStore((state) => state.signIn);
+  const [loadingOnboarding, setLoadingOnboarding] = useState(true);
 
+  // 1. Verifica se o usuário já viu o onboarding
   useEffect(() => {
+    async function checkOnboarding() {
+      const hasSeen = await AsyncStorage.getItem('hasSeenOnboarding');
+      if (!hasSeen) {
+        router.replace('/onboarding');
+      }
+      setLoadingOnboarding(false);
+    }
     checkOnboarding();
   }, []);
 
-  const checkOnboarding = async () => {
-    try {
-      const hasSeen = await AsyncStorage.getItem('hasSeenOnboarding');
-      if (hasSeen !== 'true') router.replace('/onboarding');
-    } catch (e) { console.log(e); } 
-    finally { setCheckingOnboarding(false); }
-  };
-
   async function handleLogin() {
-    if (!email || !password) return Alert.alert('Erro', 'Preencha todos os campos');
+    if (!email || !password) return Alert.alert('Atenção', 'Preencha e-mail e senha.');
+
     setLoading(true);
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
-      await signIn(token, user);
       
-      if (user.role === 'CLIENT') router.replace('/(client)/home');
-      else if (user.role === 'VET') router.replace('/(vet)/dashboard');
-      else if (user.role === 'ADMIN') router.replace('/(admin)/dashboard');
-      
+      // Salva o token no storage e atualiza a store
+      login(token, user);
+
+      // Redireciona com base na Role
+      if (user.role === 'CLIENT' && !user.myVetId) {
+        // Redireciona para o vínculo obrigatório
+        router.replace('/link-vet');
+      } else if (user.role === 'VET' || user.role === 'ADMIN') {
+        // Redireciona para a Home do Admin/Vet
+        router.replace('/(admin)/dashboard'); 
+      } else {
+        // Redireciona para a Home do Cliente
+        router.replace('/(client)/home');
+      }
+
     } catch (error: any) {
-      const msg = error.response?.data?.error || 'Verifique suas credenciais.';
-      Alert.alert('Falha no Login', msg);
+      const msg = error.response?.data?.error || 'Erro ao fazer login';
+      Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
     }
   }
 
-  if (checkingOnboarding) return <View className="flex-1 bg-white" />;
+  // Se estiver verificando o onboarding, não renderiza o formulário
+  if (loadingOnboarding) {
+    return (
+      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+        <Text className="text-gray-500">Carregando...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      className="flex-1 bg-white"
-    >
-      <StatusBar style="dark" />
-      
-      <View className="flex-1 px-8 justify-center">
-        {/* Header Animado */}
-        <Animated.View entering={FadeInUp.duration(1000).springify()} className="items-center mb-12">
-          <View className="w-28 h-28 bg-emerald-50 rounded-full items-center justify-center mb-6 shadow-sm border border-emerald-100">
-            <Text className="text-5xl">🐾</Text>
-          </View>
-          <Text className="text-3xl font-bold text-gray-900 mb-2">Bem-vindo!</Text>
-          <Text className="text-gray-500 text-center">
-            Acesse para cuidar da saúde{'\n'}do seu melhor amigo.
-          </Text>
-        </Animated.View>
+    <SafeAreaView className="flex-1 bg-white px-6 justify-center">
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        className="flex-1 justify-center"
+      >
+        <ScrollView contentContainerStyle={{ justifyContent: 'center', flexGrow: 1 }} showsVerticalScrollIndicator={false}>
 
-        {/* Formulário Animado */}
-        <Animated.View entering={FadeInDown.duration(1000).delay(200).springify()} className="w-full">
+          <View className="items-center mb-10">
+            {/* LOGO ADICIONADA */}
+            <Image 
+              source={require('../assets/images/logo-hvg.png')} 
+              className="w-32 h-32 mb-4" 
+              resizeMode="contain"
+            />
+            <Text className="text-3xl font-bold text-primary-700">
+              Bem-vindo
+            </Text>
+            <Text className="text-gray-500 mt-2">
+              Entrar na sua conta
+            </Text>
+          </View>
+
           <Input 
             placeholder="E-mail" 
-            icon="mail-outline" 
-            value={email} 
-            onChangeText={setEmail}
-            autoCapitalize="none"
+            icon="mail-outline"
             keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
-          
           <Input 
             placeholder="Senha" 
-            icon="lock-closed-outline" 
-            isPassword 
+            icon="lock-closed-outline"
+            isPassword
             value={password}
             onChangeText={setPassword}
           />
 
-          <View className="flex-row justify-end mb-6">
-            <Text className="text-primary-500 font-semibold text-sm">Esqueceu a senha?</Text>
-          </View>
-
           <Button 
             title="Entrar" 
-            onPress={handleLogin} 
-            loading={loading} 
-            className="mb-4"
+            onPress={handleLogin}
+            loading={loading}
+            className="mt-6"
           />
 
-          <Link href="/register" asChild>
-            <Button 
-              title="Criar nova conta" 
-              variant="outline"
-            />
-          </Link>
-        </Animated.View>
-      </View>
-      
-      {/* Footer discreto */}
-      <View className="pb-8 items-center">
-        <Text className="text-gray-400 text-xs">Cães & Cia v1.0.0</Text>
-      </View>
-    </KeyboardAvoidingView>
+          <TouchableOpacity className="mt-4 items-center">
+            <Text className="text-gray-500 text-sm">
+              Esqueceu a senha?
+            </Text>
+          </TouchableOpacity>
+
+          <View className="flex-row items-center justify-center mt-12">
+            <Text className="text-gray-500">Não tem conta?</Text>
+            <TouchableOpacity onPress={() => router.push('/register')}>
+              <Text className="text-primary-500 font-bold ml-1">Crie uma!</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

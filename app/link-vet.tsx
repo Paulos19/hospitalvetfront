@@ -1,18 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import LottieView from 'lottie-react-native';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '../components/ui/Button'; // Ajuste o caminho conforme sua estrutura
+import { Input } from '../components/ui/Input'; // Ajuste o caminho conforme sua estrutura
 import { api } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore'; // Vamos precisar atualizar o usuário no store
-
-// Seus componentes de UI
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { useAuthStore } from '../src/store/authStore';
 
 export default function LinkVetScreen() {
   const router = useRouter();
-  const { user, updateUser } = useAuthStore();
+  const { user } = useAuthStore();
   const [vetToken, setVetToken] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,17 +20,19 @@ export default function LinkVetScreen() {
 
     setLoading(true);
     try {
-      // Chama a rota que criamos no backend para vincular
       await api.post('/users/link-vet', { vetToken: vetToken.toUpperCase() });
       
-      // Atualiza o estado local para remover a flag de bloqueio (se houver)
-      // E redireciona para a Home
-      Alert.alert('Sucesso!', 'Seu perfil foi vinculado.', [
-        { 
-          text: 'Continuar', 
-          onPress: () => router.replace('/(client)/home') 
+      // SUCESSO: Redireciona para a tela de animação
+      router.replace({
+        pathname: '/success',
+        params: {
+          title: 'Vínculo Realizado!',
+          subtitle: 'Agora você tem acesso completo aos serviços do seu veterinário.',
+          nextRoute: '/(client)/home',
+          buttonText: 'Acessar App'
         }
-      ]);
+      });
+
     } catch (error: any) {
       Alert.alert('Erro', error.response?.data?.error || 'Token inválido.');
     } finally {
@@ -44,9 +45,17 @@ export default function LinkVetScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         
         <View className="items-center mb-8">
-          <View className="w-20 h-20 bg-orange-50 rounded-full items-center justify-center mb-4">
-            <Ionicons name="lock-closed" size={40} color="#F97316" />
+          {/* Animação de Segurança/Cadeado */}
+          <View className="w-40 h-40 mb-2">
+            <LottieView
+              // Certifique-se de ter baixado o arquivo secure-lock.json
+              source={require('../assets/animations/secure-lock.json')}
+              autoPlay
+              loop
+              style={{ width: '100%', height: '100%' }}
+            />
           </View>
+
           <Text className="text-2xl font-bold text-gray-800 text-center">
             Acesso Restrito
           </Text>
@@ -57,15 +66,18 @@ export default function LinkVetScreen() {
         </View>
 
         <View className="bg-orange-50 p-6 rounded-3xl border border-orange-100 border-dashed mb-8">
-            <Text className="text-orange-800 text-sm font-bold mb-2 uppercase text-center">
-                Código do Médico
-            </Text>
+            <View className="flex-row justify-center mb-2">
+                <Ionicons name="key-outline" size={20} color="#C2410C" /> 
+                <Text className="text-orange-800 text-sm font-bold ml-2 uppercase text-center">
+                    Código do Médico
+                </Text>
+            </View>
             <Input 
                 placeholder="EX: VET-SILVA"
                 value={vetToken}
                 onChangeText={t => setVetToken(t.toUpperCase())}
                 autoCapitalize="characters"
-                className="bg-white text-center font-bold text-lg mb-0"
+                className="bg-white text-center font-bold text-lg mb-0 h-14"
             />
         </View>
 
@@ -73,7 +85,7 @@ export default function LinkVetScreen() {
             title="Validar e Entrar"
             onPress={handleLink}
             loading={loading}
-            className="bg-orange-500 shadow-orange-500/30"
+            className="bg-orange-500 shadow-orange-500/30 py-4"
         />
 
         <View className="mt-6 items-center">

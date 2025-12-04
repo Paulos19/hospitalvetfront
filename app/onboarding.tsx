@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { Alert, Text, TouchableOpacity, View } from 'react-native';
+import LottieView from 'lottie-react-native';
+import { Alert, Image, Text, TouchableOpacity, View } from 'react-native'; // <--- Image importada
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OnboardingScreen() {
@@ -26,17 +27,31 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white items-center justify-between py-10 px-6">
-      <View className="items-center mt-10">
-        <View className="w-64 h-64 bg-secondary-100 rounded-full items-center justify-center mb-10">
-            {/* Você pode usar uma imagem ilustrativa aqui */}
-            <Ionicons name="paw" size={120} color="#10B981" />
+      <View className="items-center mt-10 w-full">
+        
+        {/* LOGO ADICIONADA */}
+        <Image 
+          source={require('../assets/images/logo-hvg.png')} 
+          className="w-24 h-24 mb-4" 
+          resizeMode="contain"
+        />
+
+        {/* ANIMAÇÃO SUBSTITUINDO O ÍCONE */}
+        <View className="w-full h-72 items-center justify-center mb-6">
+            <LottieView
+              source={require('../assets/animations/dog-onboarding.json')}
+              autoPlay
+              loop
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="contain"
+            />
         </View>
         
         <Text className="text-3xl font-bold text-primary-700 text-center mb-4">
           Cães & Cia
         </Text>
         
-        <Text className="text-text-muted text-center text-lg leading-6">
+        <Text className="text-text-muted text-center text-lg leading-6 px-4">
           O cuidado que seu melhor amigo merece.{'\n'}
           Gerencie vacinas, consultas e histórico médico em um só lugar.
         </Text>
@@ -52,7 +67,7 @@ export default function OnboardingScreen() {
 
         <TouchableOpacity 
           onPress={handleFinish}
-          className="w-full bg-primary-500 py-4 rounded-2xl items-center shadow-lg shadow-primary-500/30"
+          className="w-full bg-primary-500 py-4 rounded-2xl items-center shadow-lg shadow-primary-500/30 active:bg-primary-600"
         >
           <Text className="text-white font-bold text-xl">Começar Agora</Text>
         </TouchableOpacity>

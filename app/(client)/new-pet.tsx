@@ -34,29 +34,24 @@ export default function NewPetScreen() {
     try {
       let photoUrl = null;
 
-      // A) Upload da Imagem (Modo FormData - Seguro para Mobile)
+      // A) Upload da Imagem
       if (image) {
-        // Prepara o nome do arquivo
         const filename = image.split('/').pop() || 'pet_photo.jpg';
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image/jpeg`;
 
-        // Cria o FormData
         const formData = new FormData();
         formData.append('file', {
-          uri: image,   // Caminho local do arquivo
+          uri: image,
           name: filename,
           type: type,
-        } as any); // O 'as any' é necessário para calar o TypeScript no React Native
+        } as any);
 
-        // Faz o upload direto (usando fetch nativo para não conflitar config do axios)
-        // Nota: Use a URL base da sua API aqui
-        const uploadResponse = await fetch('https://hospitalvetbackend-7jyy.vercel.app/api/upload?filename=' + filename, {
+        // Ajuste a URL base se necessário
+        const uploadResponse = await fetch('https://hospitalvetbackend.vercel.app/api/upload?filename=' + filename, {
           method: 'POST',
           body: formData,
           headers: {
-            // NUNCA defina Content-Type aqui para multipart/form-data
-            // O fetch adiciona o boundary automaticamente
             'Accept': 'application/json',
           },
         });
@@ -67,13 +62,22 @@ export default function NewPetScreen() {
         photoUrl = uploadResult.url;
       }
 
-      // B) Salvar Pet no Banco (Via Axios normal)
+      // B) Salvar Pet no Banco
       await api.post('/pets', {
         ...form,
         photoUrl
       });
 
-      Alert.alert('Sucesso', 'Pet cadastrado!', [{ text: 'OK', onPress: () => router.back() }]);
+      // SUCESSO: Navega para a tela de animação
+      router.replace({
+        pathname: '/success',
+        params: {
+          title: 'Oba! Novo Pet!',
+          subtitle: `${form.name} foi cadastrado com sucesso.`,
+          nextRoute: '/(client)/home',
+          buttonText: 'Voltar para Home'
+        }
+      });
 
     } catch (error) {
       console.error(error);
@@ -84,25 +88,24 @@ export default function NewPetScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
       <ScrollView className="flex-1 px-6 pt-4">
         <View className="flex-row items-center mb-6">
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#10B981" />
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-primary-700 ml-4">Novo Pet</Text>
+          <Text className="text-2xl font-bold text-gray-800 ml-4">Novo Pet</Text>
         </View>
 
         {/* Foto Avatar */}
         <View className="items-center mb-8">
-          <TouchableOpacity onPress={pickImage} className="w-32 h-32 bg-secondary-100 rounded-full items-center justify-center border-2 border-dashed border-primary-500 overflow-hidden relative">
+          <TouchableOpacity onPress={pickImage} className="w-32 h-32 bg-gray-100 rounded-full items-center justify-center border-2 border-dashed border-primary-500 overflow-hidden relative">
             {image ? (
               <Image source={{ uri: image }} className="w-full h-full" />
             ) : (
               <Ionicons name="camera" size={40} color="#10B981" />
             )}
             
-            {/* Ícone de editar sobreposto */}
             <View className="absolute bottom-0 bg-black/30 w-full items-center py-1">
               <Text className="text-white text-xs font-bold">EDITAR</Text>
             </View>
@@ -111,9 +114,9 @@ export default function NewPetScreen() {
 
         <View className="space-y-4">
           <View>
-            <Text className="ml-1 mb-1 font-medium text-text-main">Nome do Pet</Text>
+            <Text className="ml-1 mb-1 font-medium text-gray-600">Nome do Pet</Text>
             <TextInput 
-              className="bg-white p-4 rounded-xl border border-gray-200"
+              className="bg-white p-4 rounded-xl border border-gray-200 text-gray-800"
               value={form.name}
               onChangeText={t => setForm({...form, name: t})}
               placeholder="Ex: Rex"
@@ -122,18 +125,18 @@ export default function NewPetScreen() {
 
           <View className="flex-row gap-4">
             <View className="flex-1">
-              <Text className="ml-1 mb-1 font-medium text-text-main">Raça</Text>
+              <Text className="ml-1 mb-1 font-medium text-gray-600">Raça</Text>
               <TextInput 
-                className="bg-white p-4 rounded-xl border border-gray-200"
+                className="bg-white p-4 rounded-xl border border-gray-200 text-gray-800"
                 value={form.breed}
                 onChangeText={t => setForm({...form, breed: t})}
                 placeholder="Ex: Poodle"
               />
             </View>
             <View className="flex-1">
-              <Text className="ml-1 mb-1 font-medium text-text-main">Peso (kg)</Text>
+              <Text className="ml-1 mb-1 font-medium text-gray-600">Peso (kg)</Text>
               <TextInput 
-                className="bg-white p-4 rounded-xl border border-gray-200"
+                className="bg-white p-4 rounded-xl border border-gray-200 text-gray-800"
                 value={form.weight}
                 onChangeText={t => setForm({...form, weight: t})}
                 placeholder="Ex: 5.2"

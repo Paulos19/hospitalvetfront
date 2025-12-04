@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native'; // <--- Image importada
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../src/services/api';
@@ -28,9 +28,17 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await api.post('/auth/register-client', formData);
-      Alert.alert('Sucesso!', 'Conta criada. Faça login para continuar.', [
-        { text: 'Ir para Login', onPress: () => router.back() }
-      ]);
+      
+      router.replace({
+        pathname: '/success',
+        params: {
+          title: 'Cadastro Concluído!',
+          subtitle: 'Sua conta foi criada e vinculada. Faça login para começar a cuidar dos seus pets.',
+          nextRoute: '/', // Rota de Login (index.tsx)
+          buttonText: 'Ir para o Login'
+        }
+      });
+      
     } catch (error: any) {
       const msg = error.response?.data?.error || 'Erro ao criar conta';
       Alert.alert('Erro', msg);
@@ -56,6 +64,16 @@ export default function RegisterScreen() {
         </View>
 
         <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
+            
+            {/* LOGO ADICIONADA */}
+            <View className="items-center mb-6">
+                <Image 
+                    source={require('../assets/images/logo-hvg.png')} 
+                    className="w-24 h-24" 
+                    resizeMode="contain"
+                />
+            </View>
+
             <Animated.View entering={FadeInDown.duration(600).springify()}>
                 
                 <Text className="font-bold text-gray-700 mb-2 ml-1">Dados Pessoais</Text>

@@ -1,4 +1,5 @@
-import { ActivityIndicator, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
+import LottieView from 'lottie-react-native'; // <--- Importar
+import { Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -7,7 +8,7 @@ interface ButtonProps extends TouchableOpacityProps {
 }
 
 export function Button({ title, loading, variant = 'primary', className, ...props }: ButtonProps) {
-  const baseStyle = "rounded-2xl py-4 items-center justify-center flex-row";
+  const baseStyle = "rounded-2xl py-4 items-center justify-center flex-row h-16"; // Fixei h-16 para consistência
   
   const variants = {
     primary: "bg-primary-500 shadow-lg shadow-primary-500/30",
@@ -24,12 +25,21 @@ export function Button({ title, loading, variant = 'primary', className, ...prop
   return (
     <TouchableOpacity 
       disabled={loading}
-      className={`${baseStyle} ${variants[variant]} ${className} ${loading ? 'opacity-70' : ''}`}
+      className={`${baseStyle} ${variants[variant]} ${className} ${loading ? 'opacity-90' : ''}`}
       activeOpacity={0.8}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? 'white' : '#10B981'} />
+        // Substituindo ActivityIndicator pelo Lottie
+        <View className="items-center justify-center w-full h-full">
+            <LottieView 
+                source={require('../../assets/animations/loading-paw.json')}
+                autoPlay
+                loop
+                // Tamanho fixo para caber no botão. Ajuste se necessário.
+                style={{ width: 60, height: 60 }} 
+            />
+        </View>
       ) : (
         <Text className={textVariants[variant]}>{title}</Text>
       )}
