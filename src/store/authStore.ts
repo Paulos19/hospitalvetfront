@@ -6,9 +6,14 @@ interface User {
   id: string;
   name: string;
   email: string;
-  photoUrl?: string | null; // <--- Adicionado
+  photoUrl?: string | null;
   role: 'ADMIN' | 'VET' | 'CLIENT';
   inviteToken?: string | null;
+  
+  // CORREÇÃO: Adicionando campos que faltavam para o TypeScript não reclamar
+  myVetId?: string | null; 
+  crmv?: string | null;
+  specialty?: string | null;
 }
 
 interface AuthState {
@@ -16,7 +21,7 @@ interface AuthState {
   token: string | null;
   signIn: (token: string, user: User) => Promise<void>;
   signOut: () => Promise<void>;
-  updateUser: (user: Partial<User>) => void; // <--- Nova ação para atualizar estado local
+  updateUser: (user: Partial<User>) => void; 
 }
 
 export const useAuthStore = create<AuthState>((set) => ({

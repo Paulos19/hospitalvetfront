@@ -1,7 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -10,7 +19,6 @@ import { useAuthStore } from '../src/store/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
-  // CORREÇÃO: Destruturando 'signIn' em vez de 'login'
   const { signIn } = useAuthStore(); 
   
   const [email, setEmail] = useState('');
@@ -18,7 +26,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingOnboarding, setLoadingOnboarding] = useState(true);
 
-  // 1. Verifica se o usuário já viu o onboarding
   useEffect(() => {
     async function checkOnboarding() {
       const hasSeen = await AsyncStorage.getItem('hasSeenOnboarding');
@@ -38,18 +45,15 @@ export default function LoginScreen() {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
       
-      // Chama a função signIn
       signIn(token, user); 
 
-      // Redireciona com base na Role
       if (user.role === 'CLIENT' && !user.myVetId) {
-        // Redireciona para o vínculo obrigatório
         router.replace('/link-vet');
-      } else if (user.role === 'VET' || user.role === 'ADMIN') {
-        // Redireciona para a Home do Admin/Vet
+      } else if (user.role === 'ADMIN') {
         router.replace('/(admin)/dashboard'); 
+      } else if (user.role === 'VET') {
+        router.replace('/(vet)/dashboard');
       } else {
-        // Redireciona para a Home do Cliente
         router.replace('/(client)/home');
       }
 
@@ -70,15 +74,18 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-6 justify-center">
+    <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        className="flex-1 justify-center"
+        className="flex-1"
       >
-        <ScrollView contentContainerStyle={{ justifyContent: 'center', flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 }} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
 
           <View className="items-center mb-10">
-            {/* LOGO ADICIONADA */}
             <Image 
               source={require('../assets/images/logo-hvg.png')} 
               className="w-56 h-56" 

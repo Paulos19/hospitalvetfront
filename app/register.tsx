@@ -1,46 +1,61 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native'; // <--- Image importada
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { api } from '../src/services/api';
 
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { api } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { signIn } = useAuthStore();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    cpf: '',
-    password: '',
-    vetToken: ''
-  });
 
   async function handleRegister() {
-    if (!formData.name || !formData.email || !formData.password || !formData.vetToken) {
-        return Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
+    if (!name || !email || !password || !confirmPassword) {
+      return Alert.alert('Erro', 'Preencha todos os campos.');
     }
-    
+
+    if (password !== confirmPassword) {
+      return Alert.alert('Erro', 'As senhas não coincidem.');
+    }
+
     setLoading(true);
     try {
-      await api.post('/auth/register-client', formData);
-      
-      router.replace({
-        pathname: '/success',
-        params: {
-          title: 'Cadastro Concluído!',
-          subtitle: 'Sua conta foi criada e vinculada. Faça login para começar a cuidar dos seus pets.',
-          nextRoute: '/', // Rota de Login (index.tsx)
-          buttonText: 'Ir para o Login'
-        }
+      // 1. Criar conta
+      const registerResponse = await api.post('/auth/register-client', {
+        name,
+        email,
+        password
       });
-      
+
+      // 2. Fazer login automático após registro
+      const loginResponse = await api.post('/auth/login', { email, password });
+      const { token, user } = loginResponse.data;
+
+      signIn(token, user);
+
+      // Redireciona para o vínculo com o veterinário (fluxo padrão de novo cliente)
+      router.replace('/link-vet');
+
     } catch (error: any) {
-      const msg = error.response?.data?.error || 'Erro ao criar conta';
+      const msg = error.response?.data?.error || 'Erro ao criar conta.';
       Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
@@ -49,105 +64,72 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      <View className="px-6 pt-4">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#374151" />
+        </TouchableOpacity>
+      </View>
+
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         className="flex-1"
       >
-        <View className="px-6 py-4 flex-row items-center border-b border-gray-50">
-            <TouchableOpacity onPress={() => router.back()} className="p-2 bg-gray-50 rounded-xl mr-4">
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingBottom: 40 }} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="mb-8">
+            <Text className="text-3xl font-bold text-primary-700">Crie sua conta</Text>
+            <Text className="text-gray-500 mt-2">
+              Preencha os dados abaixo para começar.
+            </Text>
+          </View>
+
+          <View className="space-y-4">
+            <Input 
+              placeholder="Nome Completo" 
+              icon="person-outline"
+              value={name}
+              onChangeText={setName}
+            />
+            <Input 
+              placeholder="E-mail" 
+              icon="mail-outline"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <Input 
+              placeholder="Senha" 
+              icon="lock-closed-outline"
+              isPassword
+              value={password}
+              onChangeText={setPassword}
+            />
+            <Input 
+              placeholder="Confirmar Senha" 
+              icon="lock-closed-outline"
+              isPassword
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+          </View>
+
+          <Button 
+            title="Cadastrar" 
+            onPress={handleRegister} 
+            loading={loading} 
+            className="mt-8"
+          />
+          
+          <View className="flex-row items-center justify-center mt-6">
+            <Text className="text-gray-500">Já tem uma conta?</Text>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text className="text-primary-500 font-bold ml-1">Faça Login</Text>
             </TouchableOpacity>
-            <View>
-                <Text className="text-xl font-bold text-gray-900">Criar Conta</Text>
-                <Text className="text-gray-500 text-xs">Junte-se à nossa comunidade</Text>
-            </View>
-        </View>
-
-        <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
-            
-            {/* LOGO ADICIONADA */}
-            <View className="items-center mb-6">
-                <Image 
-                    source={require('../assets/images/logo-hvg.png')} 
-                    className="w-56 h-56" 
-                    resizeMode="contain"
-                />
-            </View>
-
-            <Animated.View entering={FadeInDown.duration(600).springify()}>
-                
-                <Text className="font-bold text-gray-700 mb-2 ml-1">Dados Pessoais</Text>
-                <Input 
-                    placeholder="Nome Completo" 
-                    icon="person-outline"
-                    value={formData.name}
-                    onChangeText={t => setFormData({...formData, name: t})}
-                />
-                <Input 
-                    placeholder="CPF (apenas números)" 
-                    icon="id-card-outline"
-                    keyboardType="numeric"
-                    value={formData.cpf}
-                    onChangeText={t => setFormData({...formData, cpf: t})}
-                />
-                <Input 
-                    placeholder="E-mail" 
-                    icon="mail-outline"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={formData.email}
-                    onChangeText={t => setFormData({...formData, email: t})}
-                />
-                <Input 
-                    placeholder="Criar Senha" 
-                    icon="lock-closed-outline"
-                    isPassword
-                    value={formData.password}
-                    onChangeText={t => setFormData({...formData, password: t})}
-                />
-
-                {/* Seção Especial: Vínculo Médico */}
-                <Animated.View 
-                    entering={FadeInRight.delay(300).springify()}
-                    className="mt-4 mb-8 bg-emerald-50 p-6 rounded-3xl border border-emerald-100 border-dashed relative overflow-hidden"
-                >
-                    {/* Elementos decorativos de fundo */}
-                    <View className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-100 rounded-full opacity-50" />
-                    
-                    <View className="flex-row items-center mb-3">
-                        <View className="bg-white p-2 rounded-full mr-3 shadow-sm">
-                            <Ionicons name="medical" size={20} color="#10B981" />
-                        </View>
-                        <View>
-                            <Text className="font-bold text-emerald-900 text-lg">Vínculo Médico</Text>
-                            <Text className="text-emerald-700 text-xs">Obrigatório para o cadastro</Text>
-                        </View>
-                    </View>
-                    
-                    <Text className="text-emerald-800/70 text-sm mb-4 leading-5">
-                        Insira o código fornecido pelo seu veterinário para conectar seus pets automaticamente.
-                    </Text>
-
-                    <View className="bg-white rounded-xl border border-emerald-200 flex-row items-center px-4 py-1">
-                        <Ionicons name="qr-code-outline" size={20} color="#10B981" />
-                        <Input 
-                            placeholder="CÓDIGO (EX: VET-SILVA)"
-                            value={formData.vetToken}
-                            onChangeText={t => setFormData({...formData, vetToken: t.toUpperCase()})}
-                            className="flex-1 mb-0 border-0 bg-transparent text-center font-bold tracking-widest text-emerald-900"
-                            autoCapitalize="characters"
-                        />
-                    </View>
-                </Animated.View>
-
-                <Button 
-                    title="Finalizar Cadastro" 
-                    onPress={handleRegister}
-                    loading={loading}
-                    className="mb-10 shadow-xl shadow-primary-500/40"
-                />
-
-            </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

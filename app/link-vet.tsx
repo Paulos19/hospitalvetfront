@@ -2,98 +2,144 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '../components/ui/Button'; // Ajuste o caminho conforme sua estrutura
-import { Input } from '../components/ui/Input'; // Ajuste o caminho conforme sua estrutura
+
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 
 export default function LinkVetScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const [vetToken, setVetToken] = useState('');
+  const { updateUser } = useAuthStore();
+  
+  const [inviteToken, setInviteToken] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleLink() {
-    if (!vetToken) return Alert.alert('Atenção', 'Digite o código do veterinário.');
+    // Validação básica para não enviar vazio
+    if (!inviteToken || inviteToken.trim() === '') {
+      return Alert.alert('Erro', 'Por favor, digite o código do veterinário.');
+    }
 
     setLoading(true);
     try {
-      await api.post('/users/link-vet', { vetToken: vetToken.toUpperCase() });
+      // Envia o token limpo (sem espaços) para o backend
+      const response = await api.post('/users/link-vet', { 
+        inviteToken: inviteToken.trim() 
+      });
       
-      // SUCESSO: Redireciona para a tela de animação
+      const { vetName, vetId } = response.data;
+
+      // 1. Atualiza o estado global do AuthStore para refletir que o usuário já tem vínculo
+      updateUser({ myVetId: vetId });
+      
+      // 2. Redireciona para a Tela de Sucesso, passando o nome do médico
       router.replace({
         pathname: '/success',
-        params: {
-          title: 'Vínculo Realizado!',
-          subtitle: 'Agora você tem acesso completo aos serviços do seu veterinário.',
-          nextRoute: '/(client)/home',
-          buttonText: 'Acessar App'
-        }
+        params: { vetName: vetName || 'Veterinário' }
       });
 
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.error || 'Token inválido.');
+      const msg = error.response?.data?.error || 'Código inválido ou não encontrado.';
+      Alert.alert('Falha ao vincular', msg);
     } finally {
       setLoading(false);
     }
   }
 
+  // Função para logout caso o usuário tenha entrado na conta errada
+  async function handleLogout() {
+    const { signOut } = useAuthStore.getState();
+    await signOut();
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-white px-6 justify-center">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        
-        <View className="items-center mb-8">
-          {/* Animação de Segurança/Cadeado */}
-          <View className="w-40 h-40 mb-2">
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Botão de Sair no topo (canto superior direito) */}
+      <View className="px-6 pt-4 flex-row justify-end">
+        <TouchableOpacity 
+          onPress={handleLogout} 
+          className="flex-row items-center bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100"
+        >
+          <Text className="text-gray-500 mr-1 text-xs font-medium">Sair da conta</Text>
+          <Ionicons name="log-out-outline" size={16} color="#6B7280" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Container principal que evita o teclado cobrir os inputs */}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        className="flex-1"
+      >
+        <ScrollView 
+          contentContainerStyle={{ 
+            flexGrow: 1, 
+            justifyContent: 'center', 
+            paddingHorizontal: 24,
+            paddingBottom: 40 
+          }} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Animação e Textos */}
+          <View className="items-center mb-8">
             <LottieView
-              // Certifique-se de ter baixado o arquivo secure-lock.json
-              source={require('../assets/animations/secure-lock.json')}
+              source={require('../assets/animations/dog-onboarding.json')}
               autoPlay
               loop
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: 250, height: 250 }} 
+            />
+            
+            <Text className="text-2xl font-bold text-gray-800 text-center -mt-4">
+              Vincular Veterinário
+            </Text>
+            
+            <Text className="text-gray-500 text-center mt-2 px-2 leading-5">
+              Insira o <Text className="font-bold text-gray-700">Código de Convite</Text> fornecido pelo seu médico para acessar seus dados.
+            </Text>
+          </View>
+
+          {/* Input do Token */}
+          <View className="mb-6">
+            <Input 
+              placeholder="Ex: DR-SILVA-123" 
+              icon="qr-code-outline"
+              autoCapitalize="characters" // Facilita digitar códigos em maiúsculas
+              autoCorrect={false}
+              value={inviteToken}
+              onChangeText={setInviteToken}
+              onSubmitEditing={handleLink}
             />
           </View>
 
-          <Text className="text-2xl font-bold text-gray-800 text-center">
-            Acesso Restrito
-          </Text>
-          <Text className="text-gray-500 text-center mt-2 px-4">
-            Olá, <Text className="font-bold text-gray-700">{user?.name}</Text>!{'\n'}
-            Para usar o aplicativo, você precisa vincular sua conta a um veterinário parceiro.
-          </Text>
-        </View>
-
-        <View className="bg-orange-50 p-6 rounded-3xl border border-orange-100 border-dashed mb-8">
-            <View className="flex-row justify-center mb-2">
-                <Ionicons name="key-outline" size={20} color="#C2410C" /> 
-                <Text className="text-orange-800 text-sm font-bold ml-2 uppercase text-center">
-                    Código do Médico
-                </Text>
-            </View>
-            <Input 
-                placeholder="EX: VET-SILVA"
-                value={vetToken}
-                onChangeText={t => setVetToken(t.toUpperCase())}
-                autoCapitalize="characters"
-                className="bg-white text-center font-bold text-lg mb-0 h-14"
-            />
-        </View>
-
-        <Button 
-            title="Validar e Entrar"
+          {/* Botão Principal */}
+          <Button 
+            title="Confirmar Vínculo" 
             onPress={handleLink}
             loading={loading}
-            className="bg-orange-500 shadow-orange-500/30 py-4"
-        />
+          />
 
-        <View className="mt-6 items-center">
-            <Text onPress={() => router.replace('/')} className="text-gray-400 text-sm p-2">
-                Sair e tentar outra conta
+          {/* Link de Ajuda */}
+          <TouchableOpacity 
+            className="mt-8 items-center" 
+            onPress={() => Alert.alert('Ajuda', 'Peça ao seu veterinário o código "Invite Token" disponível no perfil dele.')}
+          >
+            <Text className="text-emerald-600 font-medium text-sm">
+              Onde encontro este código?
             </Text>
-        </View>
+          </TouchableOpacity>
 
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

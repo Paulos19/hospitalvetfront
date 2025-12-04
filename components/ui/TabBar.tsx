@@ -1,57 +1,26 @@
-import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import * as Haptics from 'expo-haptics';
-import { TouchableOpacity, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const { bottom } = useSafeAreaInsets();
-
-  const activeColor = '#10B981';
-  const inactiveColor = '#9CA3AF';
-  const backgroundColor = colorScheme === 'dark' ? '#1F2937' : '#FFFFFF';
+  // Hook para saber a área segura (principalmente no iPhone X/11/12+ que tem a barra preta embaixo)
+  const insets = useSafeAreaInsets();
 
   return (
-    <View
-      className="absolute bottom-0 left-0 right-0 items-center justify-end"
-      style={{ paddingBottom: bottom + 10 }}
-      pointerEvents="box-none"
-    >
-      <View
-        className="flex-row bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 mx-10 py-3 px-2 absolute bottom-6 w-[90%] justify-around items-center"
-        style={{ 
-          elevation: 10, 
-          backgroundColor,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 5 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10
-        }}
-      >
+    // Container Invisível para posicionamento
+    <View style={[styles.container, { paddingBottom: insets.bottom + 10 }]}>
+      
+      {/* A Barra Flutuante Real */}
+      <View style={styles.tabBar}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
+          
+          // Ignora rotas ocultas (como sitemap ou not-found do Expo)
+          if (['_sitemap', '+not-found'].includes(route.name)) return null;
 
-          // Filtro de rotas
+          // Se a opção href for null (rota oculta), não renderiza
           // @ts-ignore
-          if (options.href === null || route.name === 'pet/[id]' || route.name === 'new-pet' || route.name === 'prescription/create') {
-            return null;
-          }
-
-          let iconName: any = 'help-circle';
-          if (route.name === 'home' || route.name === 'dashboard') iconName = 'paw';
-          if (route.name === 'profile') iconName = 'person';
-          if (route.name === 'explore') iconName = 'compass';
-
-          const label =
-            options.tabBarLabel !== undefined
-              ? options.tabBarLabel
-              : options.title !== undefined
-              ? options.title
-              : route.name;
+          if (options.href === null) return null;
 
           const isFocused = state.index === index;
 
@@ -63,23 +32,41 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             });
 
             if (!isFocused && !event.defaultPrevented) {
-              if (process.env.EXPO_OS === 'ios') {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
               navigation.navigate(route.name, route.params);
             }
           };
 
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
+
+          // Cores
+          const activeColor = '#059669'; // Emerald 600
+          const inactiveColor = '#9CA3AF'; // Gray 400
+
           return (
-            <TabIcon
+            <TouchableOpacity
               key={route.key}
-              isFocused={isFocused}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              // @ts-ignore: tabBarTestID might not be in the type definition for some versions
+              testID={(options as any).tabBarTestID}
               onPress={onPress}
-              iconName={iconName}
-              label={label as string}
-              activeColor={activeColor}
-              inactiveColor={inactiveColor}
-            />
+              onLongPress={onLongPress}
+              style={styles.tabItem}
+              activeOpacity={0.7}
+            >
+              {/* Renderiza o ícone definido no _layout.tsx */}
+              {options.tabBarIcon && options.tabBarIcon({ 
+                focused: isFocused, 
+                color: isFocused ? activeColor : inactiveColor, 
+                size: 24 
+              })}
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -87,80 +74,48 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   );
 }
 
-function TabIcon({
-  isFocused,
-  onPress,
-  iconName,
-  label,
-  activeColor,
-  inactiveColor
-}: {
-  isFocused: boolean;
-  onPress: () => void;
-  iconName: any;
-  label: string;
-  activeColor: string;
-  inactiveColor: string;
-}) {
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { scale: withSpring(isFocused ? 1.05 : 1, { damping: 10, stiffness: 100 }) },
-        { translateY: withTiming(isFocused ? -2 : 0, { duration: 200 }) }
-      ],
-    };
-  });
-
-  const iconColor = isFocused ? 'white' : inactiveColor;
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.7}
-      className="items-center justify-center min-w-[65px]"
-      accessibilityState={{ selected: isFocused }}
-      accessibilityRole="tab"
-    >
-      <Animated.View style={animatedStyle}>
-        {/* CORREÇÃO AQUI: Classes estáticas apenas. Cores dinâmicas no style. */}
-        <View
-          className="w-12 h-12 items-center justify-center rounded-full"
-          style={{ 
-            backgroundColor: isFocused ? activeColor : 'transparent',
-            // Sombra opcional apenas se focado
-            shadowColor: isFocused ? activeColor : undefined,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isFocused ? 0.3 : 0,
-            shadowRadius: 4,
-            elevation: isFocused ? 4 : 0
-          }}
-        >
-          <Ionicons
-            name={isFocused ? iconName : `${iconName}-outline` as any}
-            size={24}
-            color={iconColor}
-          />
-        </View>
-      </Animated.View>
-
-      {isFocused && (
-        <Animated.View
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(200)}
-          className="mt-1"
-        >
-          <ThemedText
-            style={{
-              fontSize: 11,
-              color: activeColor,
-              fontWeight: '600',
-            }}
-          >
-            {label}
-          </ThemedText>
-        </Animated.View>
-      )}
-    </TouchableOpacity>
-  );
-}
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    backgroundColor: 'transparent', // Garante que o container pai não tenha fundo
+    pointerEvents: 'box-none', // Permite clicar "através" da área vazia ao redor da tabbar
+  },
+  tabBar: {
+    flexDirection: 'row',
+    width: '90%', // Largura menor que 100% para dar o efeito flutuante
+    backgroundColor: '#ffffff', // Fundo sempre branco
+    borderRadius: 35, // Arredondamento forte (Pill shape)
+    paddingVertical: 12, // Altura interna
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    
+    // Sombras (iOS)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    
+    // Sombras (Android)
+    elevation: 8,
+    
+    // Curva suave no iOS
+    ...Platform.select({
+      ios: {
+        borderCurve: 'continuous',
+      },
+    }),
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+});

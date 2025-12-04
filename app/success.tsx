@@ -1,54 +1,57 @@
-import { Button } from '@/components/ui/Button';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import { Text, View } from 'react-native';
+import { StatusBar, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Button } from '../components/ui/Button';
 
 export default function SuccessScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-
-  // Parâmetros dinâmicos (com valores padrão caso não sejam passados)
-  const title = params.title || 'Sucesso!';
-  const subtitle = params.subtitle || 'Ação concluída com sucesso.';
-  const nextRoute = params.nextRoute as string || '/(client)/home';
-  const buttonText = params.buttonText || 'Continuar';
+  const { vetName } = useLocalSearchParams();
 
   function handleContinue() {
-    // replace previne que o usuário volte para a tela de sucesso ao clicar em "voltar"
-    router.replace(nextRoute as any);
+    // Redireciona para a Home do Cliente e reseta a pilha de navegação
+    router.replace('/(client)/home');
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white items-center justify-center px-6">
-      
-      {/* Animação */}
-      <View className="w-64 h-64 mb-6">
+    <SafeAreaView className="flex-1 bg-white justify-center items-center px-6">
+      <StatusBar barStyle="dark-content" />
+
+      {/* Animação de Sucesso */}
+      <View className="items-center mb-8">
         <LottieView
           source={require('../assets/animations/success.json')}
           autoPlay
           loop={false} // Toca apenas uma vez
-          style={{ width: '100%', height: '100%' }}
+          style={{ width: 200, height: 200 }}
         />
       </View>
 
-      {/* Textos */}
-      <Text className="text-3xl font-bold text-gray-800 text-center mb-2">
-        {title}
+      {/* Título */}
+      <Text className="text-3xl font-bold text-emerald-600 text-center mb-4">
+        Tudo Pronto!
       </Text>
-      
-      <Text className="text-gray-500 text-center text-lg mb-12 px-4 leading-6">
-        {subtitle}
+
+      {/* Mensagem Personalizada */}
+      <Text className="text-gray-500 text-center text-base leading-6 mb-12">
+        Sua conta foi vinculada com sucesso.
+        {vetName ? (
+          <>
+            {'\n'}Agora você está sendo atendido pelo(a){'\n'}
+            <Text className="font-bold text-gray-800">{vetName}</Text>.
+          </>
+        ) : (
+          '\nAgora você tem acesso completo aos serviços da clínica.'
+        )}
       </Text>
 
       {/* Botão de Ação */}
-      <View className="w-full">
-        <Button 
-            title={buttonText as string}
-            onPress={handleContinue}
-            className="bg-green-500 shadow-green-500/30 py-4"
-        />
-      </View>
+      <Button 
+        title="Acessar App" 
+        onPress={handleContinue}
+        className="w-full"
+      />
 
     </SafeAreaView>
   );
