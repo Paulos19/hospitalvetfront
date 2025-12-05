@@ -9,6 +9,7 @@ dist/
 web-build/
 expo-env.d.ts
 gerador-2-c8519-firebase-adminsdk-4ywfn-48414693eb.json
+google-services.json
 
 # Native
 .kotlin/
