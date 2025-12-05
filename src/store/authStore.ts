@@ -1,36 +1,47 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
-  myVetId?: string | null; // Importante para saber se tem vínculo
   photoUrl?: string | null;
+  role: 'ADMIN' | 'VET' | 'CLIENT';
+  inviteToken?: string | null;
+  
+  // CORREÇÃO: Adicionando campos que faltavam para o TypeScript não reclamar
+  myVetId?: string | null; 
+  crmv?: string | null;
+  specialty?: string | null;
 }
 
 interface AuthState {
-  token: string | null;
   user: User | null;
-  signIn: (token: string, user: User) => void;
-  signOut: () => void;
-  updateUser: (user: User) => void;
+  token: string | null;
+  signIn: (token: string, user: User) => Promise<void>;
+  signOut: () => Promise<void>;
+  updateUser: (user: Partial<User>) => void; 
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      token: null,
-      user: null,
-      signIn: (token, user) => set({ token, user }),
-      signOut: () => set({ token: null, user: null }),
-      updateUser: (user) => set((state) => ({ user: { ...state.user, ...user } })),
-    }),
-    {
-      name: 'auth-storage', // Nome da chave no armazenamento
-      storage: createJSONStorage(() => AsyncStorage), // Usa o storage do celular
-    }
-  )
-);
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  token: null,
+
+  signIn: async (token, user) => {
+    await SecureStore.setItemAsync('token', token);
+    set({ token, user });
+  },
+
+  signOut: async () => {
+    await SecureStore.deleteItemAsync('token');
+    set({ token: null, user: null });
+    router.replace('/'); 
+  },
+
+  updateUser: (updates) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...updates } : null
+    }));
+  }
+}));
