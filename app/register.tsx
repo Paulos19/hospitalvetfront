@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Logo } from '../components/ui/Logo'; // <--- Importando a Logo
+import { Logo } from '../components/ui/Logo';
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 
@@ -24,12 +24,15 @@ export default function RegisterScreen() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState(''); // <--- NOVO ESTADO
+  const [vetToken, setVetToken] = useState(''); // <--- NOVO ESTADO
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
-    if (!name || !email || !password || !confirmPassword) {
+    // Validação atualizada para incluir CPF e vetToken
+    if (!name || !email || !password || !confirmPassword || !cpf || !vetToken) {
       return Alert.alert('Erro', 'Preencha todos os campos.');
     }
 
@@ -39,19 +42,27 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const registerResponse = await api.post('/auth/register-client', {
+      // Enviando os novos campos para o backend
+      await api.post('/auth/register-client', {
         name,
         email,
-        password
+        password,
+        cpf,       // <--- ENVIANDO CPF
+        vetToken   // <--- ENVIANDO CÓDIGO
       });
 
+      // Login automático após registro
       const loginResponse = await api.post('/auth/login', { email, password });
       const { token, user } = loginResponse.data;
 
       signIn(token, user);
-      router.replace('/link-vet');
+      
+      // Como o usuário já se vinculou no registro, talvez não precise ir para link-vet.
+      // Você pode redirecionar direto para a home se preferir: router.replace('/(client)/home');
+      router.replace('/link-vet'); 
 
     } catch (error: any) {
+      console.log(error.response?.data); // Útil para debug
       const msg = error.response?.data?.error || 'Erro ao criar conta.';
       Alert.alert('Erro', msg);
     } finally {
@@ -76,7 +87,6 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ADICIONANDO A LOGO AQUI */}
           <View className="items-center mb-6">
             <Logo size="medium" showText={false} />
           </View>
@@ -84,7 +94,7 @@ export default function RegisterScreen() {
           <View className="mb-6 items-center">
             <Text className="text-3xl font-bold text-primary-700">Crie sua conta</Text>
             <Text className="text-gray-500 mt-2 text-center">
-              Junte-se ao HVG e cuide do seu pet com tecnologia.
+              Preencha os dados e informe o código do seu veterinário.
             </Text>
           </View>
 
@@ -94,6 +104,21 @@ export default function RegisterScreen() {
               icon="person-outline"
               value={name}
               onChangeText={setName}
+            />
+            <Input 
+              placeholder="CPF" 
+              icon="card-outline"
+              keyboardType="numeric"
+              value={cpf}
+              onChangeText={setCpf}
+            />
+             {/* CAMPO NOVO: Código do Veterinário */}
+            <Input 
+              placeholder="Código do Veterinário (Ex: DR-SILVA)" 
+              icon="medkit-outline"
+              autoCapitalize="characters"
+              value={vetToken}
+              onChangeText={setVetToken}
             />
             <Input 
               placeholder="E-mail" 
